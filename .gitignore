@@ -1,0 +1,10 @@
+build/
+CLAUDE.md
+*.exe
+*.pdb
+*.lib
+*.dll
+*.obj
+.vs/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,26 @@
+:root { --bg: #1a1a2e; --bg2: #16213e; --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --card: #1e1e32; --border: #374151; }
+[data-theme="light"] { --bg: #f9fafb; --bg2: #f3f4f6; --text: #111827; --text2: #6b7280; --card: #ffffff; --border: #d1d5db; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
+#sidebar { width:240px; background:var(--bg2); padding:20px; position:fixed; top:0; left:0; bottom:0; overflow-y:auto; border-right:1px solid var(--border); }
+#sidebar h2 { font-size:18px; margin-bottom:16px; color:var(--accent); }
+#sidebar a { display:block; padding:8px 12px; color:var(--text2); text-decoration:none; border-radius:6px; margin-bottom:4px; font-size:14px; }
+#sidebar a:hover, #sidebar a.active { background:var(--accent); color:#fff; }
+main { margin-left:240px; padding:40px; max-width:1000px; width:100%; }
+section { margin-bottom:48px; }
+h1 { font-size:32px; margin-bottom:8px; }
+h2 { font-size:22px; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+h3 { font-size:16px; margin:16px 0 8px; }
+.badges { display:flex; gap:8px; margin:16px 0; flex-wrap:wrap; }
+.badges span { background:var(--accent); color:#fff; padding:4px 12px; border-radius:12px; font-size:12px; }
+.comp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.card h3 { margin-top:0; color:var(--accent); }
+.card p { color:var(--text2); font-size:13px; }
+pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-size:13px; line-height:1.5; }
+code { font-family:'Cascadia Code','Fira Code',monospace; font-size:13px; }
+ul { padding-left:20px; }
+li { margin-bottom:4px; }
+.theme-toggle { margin-top:20px; display:block; color:var(--text2); font-size:13px; }
+.theme-toggle select { margin-left:8px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:4px 8px; }
+@media(max-width:768px){ #sidebar{width:160px} main{margin-left:160px;padding:20px} .comp-grid{grid-template-columns:1fr} }

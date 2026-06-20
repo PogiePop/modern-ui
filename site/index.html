@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ModernUI - C++20 UI Component Library</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav id="sidebar">
+  <h2>ModernUI</h2>
+  <a href="#overview" class="active">Overview</a>
+  <a href="#components">Components</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#customize">Customize & Extend</a>
+  <a href="#getting-started">Getting Started</a>
+  <label class="theme-toggle">Theme: <select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+</nav>
+<main>
+<section id="overview">
+<h1>ModernUI</h1>
+<p>A modern C++20 retained-mode UI component library built on OpenGL 3.3 Core Profile with 50+ widgets, GPU-accelerated rendering, theme system, animations, and more.</p>
+<div class="badges"><span>C++20</span><span>OpenGL 3.3</span><span>GLFW</span><span>CMake</span><span>Windows</span></div>
+</section>
+<section id="components">
+<h2>Component Gallery</h2>
+<div class="comp-grid">
+<div class="card"><h3>Button</h3><p>Gradient, rounded, shadow, hover/press states</p></div>
+<div class="card"><h3>Label</h3><p>Font-aware text with alignment</p></div>
+<div class="card"><h3>TextInput</h3><p>Font-measured cursor, auto-scroll, blink</p></div>
+<div class="card"><h3>TextEdit</h3><p>Multi-line with word wrap, line numbers</p></div>
+<div class="card"><h3>Checkbox</h3><p>Toggle with label and keyboard support</p></div>
+<div class="card"><h3>RadioButton</h3><p>Radio group with exclusive selection</p></div>
+<div class="card"><h3>Switch</h3><p>iOS-style toggle with color track</p></div>
+<div class="card"><h3>Slider</h3><p>Draggable thumb with track fill</p></div>
+<div class="card"><h3>ScrollBar</h3><p>Vertical/horizontal with thumb drag</p></div>
+<div class="card"><h3>Select</h3><p>Inline list picker with hover highlight</p></div>
+<div class="card"><h3>Dropdown</h3><p>Popup list with expand direction</p></div>
+<div class="card"><h3>TabView</h3><p>Multi-tab container with lazy layout</p></div>
+<div class="card"><h3>Dialog/MessageBox</h3><p>Modal overlay with icon, buttons, backdrop</p></div>
+<div class="card"><h3>NavMenu</h3><p>Multi-level sidebar navigation</p></div>
+<div class="card"><h3>Table</h3><p>Zebra-striped rows with column headers</p></div>
+<div class="card"><h3>ProgressBar</h3><p>Rounded fill with percentage</p></div>
+<div class="card"><h3>LoadingSpinner</h3><p>8-segment animated arc</p></div>
+<div class="card"><h3>Pagination</h3><p>Page buttons with &lt; &gt; navigation</p></div>
+<div class="card"><h3>CollapsePanel</h3><p>Expandable with auto-relayout</p></div>
+<div class="card"><h3>Upload</h3><p>FileBrowser overlay picker</p></div>
+<div class="card"><h3>FileBrowser</h3><p>Apple Finder-style with sidebar, scroll, resize</p></div>
+<div class="card"><h3>Avatar</h3><p>Circular with initials extraction</p></div>
+<div class="card"><h3>Toast</h3><p>Slide-in notification with auto-dismiss</p></div>
+<div class="card"><h3>Tooltip</h3><p>Hover delay popup near cursor</p></div>
+<div class="card"><h3>Link</h3><p>Underlined with Navigate/HttpGet modes</p></div>
+<div class="card"><h3>Border</h3><p>Decorative border container</p></div>
+<div class="card"><h3>Divider</h3><p>Solid/Dashed/Dotted separator</p></div>
+<div class="card"><h3>Spacer</h3><p>Flexible gap with SpaceSize enum</p></div>
+<div class="card"><h3>Form</h3><p>Labeled field container</p></div>
+<div class="card"><h3>InputNumber</h3><p>Up/down buttons with range</p></div>
+<div class="card"><h3>GridLayout</h3><p>Row/col spans</p></div>
+<div class="card"><h3>FlexLayout</h3><p>Flex-grow ratios</p></div>
+<div class="card"><h3>ResponsiveLayout</h3><p>Breakpoint-based direction</p></div>
+<div class="card"><h3>LayoutContainer</h3><p>Header/Main/Aside/Footer presets</p></div>
+</div>
+</section>
+<section id="architecture">
+<h2>Architecture</h2>
+<pre><code>main.cpp
+src/core/   — App, Window, Event, Painter, QuadBatcher, Animation, Icon
+src/res/    — Shader, Texture, Font, Theme, StyleSheet, BlurShader
+src/widgets/ — Widget base + 50+ component implementations
+src/utils/  — HttpClient, Navigation, AsyncTask</code></pre>
+<h3>Layer Dependencies</h3>
+<p><code>widgets → res + core → core → GLFW/glad/GLM/stb</code></p>
+<h3>Key Systems</h3>
+<ul>
+<li><b>Widget tree</b>: unique_ptr ownership, virtual measure/layout/paint/hitTest</li>
+<li><b>Rendering</b>: batched VBO with auto-flush on texture change, SDF rounded rects</li>
+<li><b>Events</b>: target+bubble dispatch, pointer capture for drag, screenRect coordinates</li>
+<li><b>Layout</b>: two-pass (measure→layout), Fixed/Fill/Intrinsic sizing, Flex/Grid/Responsive</li>
+<li><b>Theme</b>: enum tokens→fixed arrays, light/dark presets, CSS stylesheet parser</li>
+<li><b>Animation</b>: per-widget opacity/slide, 9 easing functions, 60fps scheduler</li>
+</ul>
+</section>
+<section id="customize">
+<h2>Customize & Extend</h2>
+<h3>Creating a Custom Widget</h3>
+<pre><code>class MyWidget : public ui::Widget {
+public:
+    const char* typeName() const override { return "MyWidget"; }
+    Size measure(const Size& avail) const override { return {100, 30}; }
+    void paint(Painter& painter) override {
+        Rect r = screenRect();
+        painter.drawRoundedRect(r, Color{0.2f,0.5f,0.9f,1}, 8);
+        painter.drawText(r, "Hello", Color{1,1,1,1}, TextAlign::Center);
+    }
+};</code></pre>
+<h3>Adding to a Container</h3>
+<pre><code>auto root = std::make_unique&lt;ui::Container&gt;(ui::LayoutDirection::Vertical);
+root->addChild(std::make_unique&lt;MyWidget&gt;());</code></pre>
+<h3>Custom Styling</h3>
+<pre><code>widget->setShadow({2,3}, 8, {0,0,0,0.35f});
+widget->setGradient({1,0.2f,0.2f,1}, {0.2f,0.2f,1,1});
+widget->setCornerRadius(12);
+widget->setFrosted(true);
+widget->setZIndex(100);</code></pre>
+<h3>Theme Customization</h3>
+<pre><code>ui::Theme theme = ui::Theme::defaultDark();
+theme.setColor(ui::ColorRole::Primary, Color{0.2f,0.6f,1,1});
+theme.setFontSize(ui::FontSizeRole::Body, 16);</code></pre>
+</section>
+<section id="getting-started">
+<h2>Getting Started</h2>
+<pre><code>git clone https://github.com/PogiePop/modern-ui.git
+cd modern-ui/build
+cmake .. -G "Visual Studio 17 2022" -A x64
+cmake --build .
+cp ../external/glfw/lib-vc2022/glfw3.dll Debug/
+./Debug/exp.exe</code></pre>
+</section>
+</main>
+<script src="js/theme.js"></script>
+</body>
+</html>
