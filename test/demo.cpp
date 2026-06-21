@@ -1004,14 +1004,14 @@ static std::unique_ptr<Widget> buildStyles2() {
     c->addChild(heading("Form Styles"));
     {
         auto fm1 = std::make_unique<Form>(); fm1->setFont(g_font);
+        fm1->setSpacing(8); fm1->setPadding({8, 8, 8, 8});
         fm1->addField("Username", std::make_unique<TextInput>());
         fm1->addField("Password", std::make_unique<TextInput>());
+        fm1->addField("Email", std::make_unique<TextInput>(), FormLabelPos::Left);
+        fm1->addField("Age", std::make_unique<InputNumber>());
+        fm1->addField("Subscribe", std::make_unique<Checkbox>("Newsletter"));
+        fm1->setSubmitButton("Submit");
         c->addChild(std::move(fm1));
-
-        auto fm2 = std::make_unique<Form>(); fm2->setFont(g_font); fm2->setCompact(true);
-        fm2->addField("Name", std::make_unique<TextInput>(), FormLabelPos::Left);
-        fm2->addField("Email", std::make_unique<TextInput>(), FormLabelPos::Left);
-        c->addChild(std::move(fm2));
     }
 
     scroll->content(std::move(c));

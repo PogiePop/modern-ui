@@ -49,6 +49,7 @@ static std::unique_ptr<ui::Container> row() {
 }
 
 int main() {
+    setvbuf(stdout, NULL, _IONBF, 0); // unbuffered for diagnostics
     ui::App app;
     if (!app.init("ModernUI - All Widgets", 1000, 700)) return -1;
     g_font = app.getFont();

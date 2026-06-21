@@ -21,7 +21,7 @@ void ScrollArea::setScrollX(float v) { m_scrollX = std::clamp(v, 0.0f, maxScroll
 void ScrollArea::setScrollY(float v) { m_scrollY = std::clamp(v, 0.0f, maxScrollY()); syncBars(); }
 
 float ScrollArea::maxScrollX() const { return std::max(0.0f, m_contentSize.width - m_bounds.width); }
-float ScrollArea::maxScrollY() const { return std::max(0.0f, m_contentSize.height - m_bounds.height); }
+float ScrollArea::maxScrollY() const { return std::max(0.0f, m_contentSize.height - m_bounds.height + 30); }
 
 Size ScrollArea::measure(const Size& a) const {
     if (m_content) return m_content->measure(a);
@@ -40,9 +40,10 @@ void ScrollArea::layout() {
 }
 
 void ScrollArea::ensureBars() {
-    float bw = m_barW + m_gap;
     bool needV = maxScrollY() > 0;
-    bool needH = maxScrollX() > 0;
+
+    // Only right-side vertical bar — no horizontal bar
+    if (m_hBar) { removeChild(m_hBar); m_hBar = nullptr; }
 
     if (needV && !m_vBar) {
         auto bar = std::make_unique<ScrollBar>(ScrollBar::Vertical);
@@ -51,29 +52,19 @@ void ScrollArea::ensureBars() {
         addChild(std::move(bar));
     } else if (!needV && m_vBar) { removeChild(m_vBar); m_vBar = nullptr; }
 
-    if (needH && !m_hBar) {
-        auto bar = std::make_unique<ScrollBar>(ScrollBar::Horizontal);
-        m_hBar = bar.get();
-        m_hBar->setMinSize(0, m_barW);
-        addChild(std::move(bar));
-    } else if (!needH && m_hBar) { removeChild(m_hBar); m_hBar = nullptr; }
+    if (m_vBar) m_vBar->setBounds({m_bounds.width - m_barW - m_gap, 0, m_barW, m_bounds.height});
 
-    // Bars at edges, outside content clip
-    if (m_vBar) m_vBar->setBounds({m_bounds.width - m_barW - m_gap, 0, m_barW, m_bounds.height - (m_hBar ? m_barW + m_gap : 0)});
-    if (m_hBar) m_hBar->setBounds({0, m_bounds.height - m_barW - m_gap,
-                                    m_bounds.width - (m_vBar ? m_barW + m_gap : 0), m_barW});
     syncBars();
 }
 
 void ScrollArea::syncBars() {
-    if (m_vBar) { m_vBar->setRange(m_contentSize.height, m_bounds.height); m_vBar->setValue(m_scrollY); }
-    if (m_hBar) { m_hBar->setRange(m_contentSize.width, m_bounds.width); m_hBar->setValue(m_scrollX); }
+    if (m_vBar) { m_vBar->setRange(m_contentSize.height + 30, m_bounds.height); m_vBar->setValue(m_scrollY); }
 }
 
 // paint with viewport clip — scroll offset handled by globalPosition
 void ScrollArea::paint(Painter& p) {
     Rect r = screenRect();
-    Rect vp{r.x, r.y, m_bounds.width - (m_vBar ? m_barW + m_gap : 0), m_bounds.height - (m_hBar ? m_barW + m_gap : 0)};
+    Rect vp{r.x, r.y, m_bounds.width - (m_vBar ? m_barW + m_gap : 0), m_bounds.height};
     p.pushClip(vp);
 
     if (m_content) {

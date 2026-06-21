@@ -1,0 +1,469 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>API 文档 — ModernUI</title>
+<style>:root{--bg:#0F0F16;--s:#1A1A26;--b:#2E2E3E;--t:#E4E4EC;--t2:#8888A0;--p:#4F8CF7;--r:8px}[data-theme="light"]{--bg:#F8FAFC;--s:#fff;--b:#CBD5E1;--t:#0F172A;--t2:#475569;--p:#3B82F6}*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.7}a{color:var(--p)}nav{background:var(--s);border-bottom:1px solid var(--b);padding:0 24px;display:flex;align-items:center;height:56px;gap:24px;position:sticky;top:0;z-index:100}nav .logo{font-size:20px;font-weight:700;color:var(--p)}nav a{color:var(--t2);font-size:14px;font-weight:500;text-decoration:none}nav a:hover{color:var(--t)}.wrap{max-width:1000px;margin:0 auto;padding:40px 24px}h1{font-size:32px;margin-bottom:8px}h2{font-size:22px;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--b)}h3{font-size:17px;margin:24px 0 8px;color:var(--p)}h4{font-size:14px;margin:16px 0 4px}.toc{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:16px 24px;margin:16px 0;columns:2}.toc a{display:block;font-size:13px;padding:2px 0}pre{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:16px;overflow-x:auto;margin:8px 0;font-size:13px}code{font-size:13px;background:var(--s);border:1px solid var(--b);border-radius:4px;padding:1px 5px}pre code{background:none;border:none;padding:0}.api-item{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:16px;margin:12px 0}.api-item h4{margin-top:0}</style></head><body>
+<nav><div class="logo">ModernUI</div><a href="index.html">首页</a><a href="api.html">API</a><a href="tutorial.html">教程</a><a href="components.html">组件</a></nav>
+
+<div class="wrap">
+<h1>API 文档</h1>
+
+<div class="toc">
+<a href="#app">App 应用程序</a><a href="#config">Config 配置</a>
+<a href="#widget">Widget 基类</a><a href="#container">Container 容器</a>
+<a href="#label">Label 标签</a><a href="#button">Button 按钮</a>
+<a href="#textinput">TextInput 输入框</a><a href="#textedit">TextEdit 多行编辑</a>
+<a href="#checkbox">Checkbox 复选框</a><a href="#radio">RadioButton 单选</a>
+<a href="#switch">Switch 开关</a><a href="#slider">Slider 滑块</a>
+<a href="#progress">ProgressBar 进度条</a><a href="#dropdown">Dropdown 下拉</a>
+<a href="#select">Select 选择列表</a><a href="#inputnumber">InputNumber 数字</a>
+<a href="#datepicker">DatePicker 日历</a><a href="#tabview">TabView 标签页</a>
+<a href="#scrollarea">ScrollArea 滚动</a><a href="#table">Table 表格</a>
+<a href="#pagination">Pagination 分页</a><a href="#card">Card 卡片</a>
+<a href="#badge">Badge 徽章</a><a href="#statcard">StatCard 统计</a><a href="#barchart">BarChart 柱状图</a>
+<a href="#collapse">CollapsePanel 折叠</a><a href="#dialog">Dialog 对话框</a>
+<a href="#messagebox">MessageBox 消息框</a><a href="#contextmenu">ContextMenu 右键菜单</a>
+<a href="#toast">Toast 通知</a><a href="#tooltip">Tooltip 提示</a>
+<a href="#link">Link 链接</a><a href="#avatar">Avatar 头像</a>
+<a href="#image">Image 图片</a><a href="#loading">Loading 加载</a>
+<a href="#border">Border 边框</a><a href="#menu">NavMenu 导航菜单</a>
+<a href="#message">MessageBubble 消息气泡</a><a href="#form">Form 表单</a>
+<a href="#space">Spacer/Divider</a><a href="#theme">Theme 主题</a>
+<a href="#clipboard">Clipboard 剪贴板</a><a href="#threadpool">ThreadPool 线程池</a>
+</div>
+
+<!-- APP -->
+<h2 id="app">App — 应用程序入口</h2>
+<div class="api-item"><h4>初始化与运行</h4>
+<pre><code>ui::App app;
+app.init("窗口标题", 800, 600);  // 创建窗口、初始化 OpenGL
+app.setRoot(std::move(widget));   // 设置根控件
+app.run();                        // 进入主事件循环
+app.quit();                       // 退出程序</code></pre></div>
+<div class="api-item"><h4>Overlay / 焦点 / 光标</h4>
+<pre><code>app.setOverlay(widget);            // 设置顶层覆盖控件（菜单、对话框等）
+app.requestFocus(widget);          // 请求焦点
+app.setMultiThreaded(true);        // 启用多线程布局</code></pre></div>
+
+<!-- CONFIG -->
+<h2 id="config">Config — 全局配置</h2>
+<div class="api-item"><h4>单例访问与配置项</h4>
+<pre><code>auto& cfg = Config::instance();
+cfg.darkMode = false;              // 亮色/暗色主题
+cfg.multiThreaded = true;          // 多线程渲染
+cfg.themeTransitionDuration = 0.5f;// 主题切换动画时长(秒)
+cfg.scrollStep = 50.0f;            // 滚轮步长(px)
+cfg.defaultFontSize = 16.0f;       // 默认字号
+cfg.animationsEnabled = true;      // 启用动画
+cfg.showFPS = false;               // 显示帧率
+
+cfg.loadFromFile("modernui.cfg");  // 从文件加载配置
+cfg.saveToFile("modernui.cfg");    // 保存配置到文件
+cfg.apply();                       // 同步到运行中子系统</code></pre></div>
+
+<!-- WIDGET -->
+<h2 id="widget">Widget — 控件基类</h2>
+<div class="api-item"><h4>树结构</h4>
+<pre><code>void addChild(std::unique_ptr&lt;Widget&gt; child);
+std::unique_ptr&lt;Widget&gt; removeChild(Widget* child);
+void removeAllChildren();
+Widget* parent() const;
+size_t childCount() const;
+Widget* childAt(size_t i) const;</code></pre></div>
+<div class="api-item"><h4>几何与可见性</h4>
+<pre><code>void setBounds(const Rect& r);       // 设置位置和大小
+void setPosition(float x, float y);  // 设置位置
+void setSize(float w, float h);      // 设置大小
+void setVisible(bool v);             // 可见性
+void setMinSize(float w, float h);   // 最小尺寸
+void setMaxSize(float w, float h);   // 最大尺寸
+Point globalPosition() const;        // 全局屏幕位置
+Rect screenRect() const;             // 屏幕矩形</code></pre></div>
+<div class="api-item"><h4>外观</h4>
+<pre><code>void setOpacity(float o);             // 不透明度 (0~1)
+void setTheme(Theme* t);             // 主题指针
+void setIcon(IconType icon);         // 设置图标
+void setShadow(Point offset, float radius, Color); // 阴影
+void clearShadow();
+void setFrosted(bool f);             // 毛玻璃效果
+void setZIndex(int z);               // 层级</code></pre></div>
+<div class="api-item"><h4>动画</h4>
+<pre><code>void fadeIn(float duration = 0.3f);   // 淡入
+void fadeOut(float duration = 0.3f);  // 淡出
+void slideIn(Point from, float dur);  // 滑入
+bool isAnimating() const;             // 是否动画中
+virtual void tickAnimation(float dt); // 逐帧动画回调</code></pre></div>
+<div class="api-item"><h4>识别</h4>
+<pre><code>void setId(const std::string& id);        // CSS 选择器 ID
+void setClassName(const std::string& c);  // CSS 类名
+virtual const char* typeName() const;     // 控件类型名（如 "Button"）</code></pre></div>
+
+<!-- CONTAINER -->
+<h2 id="container">Container — 布局容器</h2>
+<div class="api-item"><h4>创建与方向</h4>
+<pre><code>// Row（水平排列）
+auto row = std::make_unique&lt;Container&gt;(LayoutDirection::Horizontal);
+// Column（垂直排列，默认）
+auto col = std::make_unique&lt;Container&gt;(LayoutDirection::Vertical);
+
+row->setDirection(LayoutDirection::Horizontal);
+row->setSpacing(8);                        // 子控件间距
+row->setPadding(EdgeInsets::all(12));      // 内边距
+row->setAlign(Container::Align::Center);   // 对齐方式</code></pre></div>
+<div class="api-item"><h4>子控件尺寸策略</h4>
+<pre><code>row->setChildSizing(0, Sizing::fixed(100), Sizing::intrinsic());
+// Sizing::fixed(px)    — 固定像素
+// Sizing::fill(weight) — 弹性填充
+// Sizing::intrinsic()  — 自适应内容（默认）</code></pre></div>
+<div class="api-item"><h4>背景色</h4>
+<pre><code>row->setBackgroundColor(Color::fromHex(0xFF1A1A2E));
+row->clearBackgroundColor();</code></pre></div>
+
+<!-- LABEL -->
+<h2 id="label">Label — 文本标签</h2>
+<div class="api-item"><h4>基本用法</h4>
+<pre><code>auto label = std::make_unique&lt;Label&gt;("Hello World");
+label->setFont(font);
+label->setFontSize(16);
+label->setColorRole(ColorRole::Text);        // 主题色（跟随主题切换动画）
+label->setColor(Color::fromHex(0xFFFFFFFF)); // 固定色
+label->setTextAlign(TextAlign::Center);      // Left / Center / Right
+
+// 选中与复制
+label->selectAll();
+label->copy();                               // Ctrl+C
+// 右键菜单：Copy / Select All</code></pre></div>
+
+<!-- BUTTON -->
+<h2 id="button">Button — 按钮</h2>
+<div class="api-item"><h4>变体与样式</h4>
+<pre><code>auto btn = std::make_unique&lt;Button&gt;("Click Me");
+btn->setVariant(Button::Primary);     // Primary/Secondary/Danger/Success/Ghost
+btn->setPill(true);                   // 全圆角药丸形
+btn->setCompact(true);                // 紧凑内边距
+btn->setCornerRadius(8);              // 圆角半径
+btn->setMinWidth(100);                // 最小宽度
+btn->setIcon(IconType::Search);       // 图标
+
+// 自定义颜色（覆盖变体色）
+btn->setSolidColor(Color::fromHex(0xFF6366F1));
+btn->setGradient(topColor, bottomColor);
+btn->setHoverColor(hoverColor);
+btn->setPressColor(pressColor);
+
+btn->setOnClick([](){ printf("clicked\n"); });
+btn->click();                         // 程序触发点击</code></pre></div>
+
+<!-- TEXTINPUT -->
+<h2 id="textinput">TextInput — 单行输入框</h2>
+<div class="api-item"><h4>基本用法</h4>
+<pre><code>auto ti = std::make_unique&lt;TextInput&gt;("Placeholder...");
+ti->setFont(font);
+ti->setText("初始文本");
+ti->setOnTextChanged([](const std::string& s){ ... });
+ti->setOnEnter([](){ ... });              // Enter 回调
+
+// 选中与剪贴板
+ti->selectAll();                          // Ctrl+A
+ti->copy(); ti->cut(); ti->paste();       // Ctrl+C/X/V
+ti->undo(); ti->redo();                   // Ctrl+Z/Y
+ti->deleteSelection();
+
+// 右键菜单
+ti->addContextMenuItem("自定义选项", [](){ ... });
+// 内置菜单项：Undo/Redo/Cut/Copy/Paste/Delete/SelectAll</code></pre></div>
+
+<!-- TEXTEDIT -->
+<h2 id="textedit">TextEdit — 多行编辑器</h2>
+<div class="api-item"><h4>基本用法</h4>
+<pre><code>auto te = std::make_unique&lt;TextEdit&gt;("Placeholder...");
+te->setFont(font);
+te->setText("Line 1\nLine 2");
+// 支持所有 TextInput 的选中/剪贴板/撤销/右键菜单功能
+// 追加方向键上下移动行、Enter 换行</code></pre></div>
+
+<!-- CHECKBOX -->
+<h2 id="checkbox">Checkbox — 复选框</h2>
+<div class="api-item"><h4>样式变体</h4>
+<pre><code>auto cb = std::make_unique&lt;Checkbox&gt;("Label");
+cb->setFont(font);
+cb->setChecked(true);
+cb->setBoxSize(18);              // 复选框大小（默认18，Small=14，Large=24）
+cb->setColorRole(ColorRole::Success); // 主题色变体
+cb->setOnCheckedChanged([](bool v){ ... });</code></pre></div>
+
+<!-- RADIO -->
+<h2 id="radio">RadioButton — 单选按钮</h2>
+<div class="api-item"><h4>分组与样式</h4>
+<pre><code>auto group = std::make_shared&lt;RadioGroup&gt;();
+auto r1 = std::make_unique&lt;RadioButton&gt;("Option A", group.get());
+auto r2 = std::make_unique&lt;RadioButton&gt;("Option B", group.get());
+r2->setSelected(true);
+r1->setDotSize(10);              // 圆点大小（Small=7, Default=10, Large=14）
+r1->setColorRole(ColorRole::Danger);
+r1->setOnSelectedChanged([](bool sel){ ... });</code></pre></div>
+
+<!-- SWITCH -->
+<h2 id="switch">Switch — 开关</h2>
+<div class="api-item"><h4>尺寸与颜色</h4>
+<pre><code>auto sw = std::make_unique&lt;Switch&gt;();
+sw->setChecked(true);
+sw->setMinSize(44, 24);          // Small=32x18, Default=44x24, Large=56x30
+sw->setColorRole(ColorRole::Success);
+sw->setOnChanged([](bool on){ ... });</code></pre></div>
+
+<!-- SLIDER -->
+<h2 id="slider">Slider — 滑块</h2>
+<div class="api-item"><h4>范围与样式</h4>
+<pre><code>auto sl = std::make_unique&lt;Slider&gt;(0, 100, 50); // min, max, value
+sl->setStep(5);                  // 步进
+sl->setColorRole(ColorRole::Accent);
+sl->setThumbSize(20);            // 拇指大小
+sl->setTrackHeight(8);           // 轨道高度
+sl->setOnValueChanged([](float v){ ... });</code></pre></div>
+
+<!-- PROGRESS -->
+<h2 id="progress">ProgressBar — 进度条</h2>
+<div class="api-item"><h4>颜色变体</h4>
+<pre><code>auto pb = std::make_unique&lt;ProgressBar&gt;();
+pb->setValue(0.65f);             // 0.0 ~ 1.0
+pb->setColorRole(ColorRole::Success); // 5种主题色变体
+pb->setColor(customColor);       // 自定义色
+pb->setTrackColor(trackColor);   // 轨道色</code></pre></div>
+
+<!-- DROPDOWN -->
+<h2 id="dropdown">Dropdown — 下拉选择</h2>
+<div class="api-item"><h4>选项管理</h4>
+<pre><code>auto dd = std::make_unique&lt;Dropdown&gt;();
+dd->addItem("Apple"); dd->addItem("Banana"); dd->addItem("Cherry");
+dd->setSelectedIndex(1);
+dd->clearSelection();            // 清除选中（显示 × 按钮）
+dd->setOnSelectedChanged([](size_t i, const std::string& s){ ... });</code></pre></div>
+
+<!-- SELECT -->
+<h2 id="select">Select — 内联选择列表</h2>
+<div class="api-item"><pre><code>auto sel = std::make_unique&lt;Select&gt;();
+sel->addItem("Red"); sel->addItem("Green"); sel->addItem("Blue");
+sel->setSelectedIndex(1);
+sel->setOnChanged([](size_t i, const std::string& s){ ... });</code></pre></div>
+
+<!-- INPUTNUMBER -->
+<h2 id="inputnumber">InputNumber — 数字输入</h2>
+<div class="api-item"><pre><code>auto in = std::make_unique&lt;InputNumber&gt;();
+in->setRange(0, 100); in->setStep(5); in->setValue(42);
+in->setOnValueChanged([](int v){ ... });</code></pre></div>
+
+<!-- DATEPICKER -->
+<h2 id="datepicker">DatePicker — 日历选择器</h2>
+<div class="api-item"><pre><code>auto dp = std::make_unique&lt;DatePicker&gt;();
+dp->setDate("2026-06-21");       // YYYY-MM-DD
+dp->setOnDateChanged([](int y, int m, int d){ ... });</code></pre></div>
+
+<!-- TABVIEW -->
+<h2 id="tabview">TabView — 标签页</h2>
+<div class="api-item"><pre><code>auto tabs = std::make_unique&lt;TabView&gt;();
+tabs->addTab("Tab 1", std::move(content1));
+tabs->addTab("Tab 2", std::move(content2));
+tabs->setCurrentTab(0);
+tabs->setContentBorder(Color, 1.0f); // 内容区边框
+tabs->setOnTabChanged([](size_t i){ ... });</code></pre></div>
+
+<!-- SCROLLAREA -->
+<h2 id="scrollarea">ScrollArea — 滚动区域</h2>
+<div class="api-item"><pre><code>auto scroll = std::make_unique&lt;ScrollArea&gt;();
+scroll->content(std::move(largeWidget));
+scroll->scrollbarWidth(8);       // 滚动条宽度
+scroll->step(40);                // 滚轮步长(px)
+scroll->setScrollY(100);         // 程序控制滚动</code></pre></div>
+
+<!-- TABLE -->
+<h2 id="table">Table — 数据表格</h2>
+<div class="api-item"><pre><code>auto tbl = std::make_unique&lt;Table&gt;();
+tbl->setFont(font);
+tbl->setColumns({"Name", "Role"}, {120, 80});
+tbl->addRow({"Alice", "Admin"});
+tbl->setRowHeight(24);           // Dense=20, Comfortable=28
+tbl->setHeaderHeight(32);</code></pre></div>
+
+<!-- PAGINATION -->
+<h2 id="pagination">Pagination — 分页</h2>
+<div class="api-item"><pre><code>auto pg = std::make_unique&lt;Pagination&gt;();
+pg->setTotalPages(10); pg->setCurrentPage(3);
+pg->setRounded(true);            // 圆角按钮
+pg->setOnPageChanged([](int page){ ... });</code></pre></div>
+
+<!-- CARD -->
+<h2 id="card">Card — 卡片</h2>
+<div class="api-item"><pre><code>auto card = std::make_unique&lt;Card&gt;();
+card->setElevation(4);           // 阴影海拔 (0/4/12/20)
+card->setBorderRadius(12);       // 圆角
+card->addChild(std::move(content));</code></pre></div>
+
+<!-- BADGE -->
+<h2 id="badge">Badge — 徽章</h2>
+<div class="api-item"><pre><code>auto badge = std::make_unique&lt;Badge&gt;("New", Badge::Primary);
+// 变体: Primary / Success / Danger / Warning / Info / Default</code></pre></div>
+
+<!-- STATCARD -->
+<h2 id="statcard">StatCard — 统计卡片</h2>
+<div class="api-item"><pre><code>auto sc = std::make_unique&lt;StatCard&gt;();
+sc->setLabel("Total Users"); sc->setValue("12,847");
+sc->setTrend("12.5%", true);     // 正趋势（绿色）
+sc->setVariant(StatCard::Primary);// 6色变体
+sc->setSizeVariant(StatCard::Large); // Small/Default/Large</code></pre></div>
+
+<!-- BARCHART -->
+<h2 id="barchart">BarChart — 柱状图</h2>
+<div class="api-item"><pre><code>auto chart = std::make_unique&lt;BarChart&gt;();
+chart->setData({65, 78, 52, 91}, {"Q1","Q2","Q3","Q4"});
+chart->setColorRole(ColorRole::Success);</code></pre></div>
+
+<!-- COLLAPSE -->
+<h2 id="collapse">CollapsePanel — 折叠面板</h2>
+<div class="api-item"><pre><code>auto cp = std::make_unique&lt;CollapsePanel&gt;("Details");
+cp->setVariant(CollapsePanel::Card);   // Default/Bordered/Card
+cp->setColorRole(ColorRole::Accent);
+cp->setContent(std::move(content));
+cp->setExpanded(true);</code></pre></div>
+
+<!-- DIALOG -->
+<h2 id="dialog">Dialog — 对话框</h2>
+<div class="api-item"><pre><code>auto dlg = std::make_unique&lt;Dialog&gt;();
+dlg->setTitle("Title");
+dlg->addChild(std::move(content));
+dlg->show(parent);
+dlg->close();
+dlg->setOnClose([](){ ... });</code></pre></div>
+
+<!-- MESSAGEBOX -->
+<h2 id="messagebox">MessageBox — 消息框</h2>
+<div class="api-item"><pre><code>auto mb = std::make_unique&lt;MessageBox&gt;();
+mb->setTitle("Info"); mb->setMessage("Body text");
+mb->setIcon(IconType::Info);     // Info/Warning/Error/Question
+mb->addButton("OK", [](){ ... });
+mb->show(parent, 360, 200);</code></pre></div>
+
+<!-- CONTEXTMENU -->
+<h2 id="contextmenu">ContextMenu — 右键菜单</h2>
+<div class="api-item"><pre><code>auto menu = std::make_unique&lt;ContextMenu&gt;();
+menu->addItem("Copy", [](){ ... }, "Ctrl+C");
+menu->addSeparator();
+menu->addItem("Custom", [](){ ... });
+menu->show(screenX, screenY, parent);
+// TextInput/TextEdit/Label 内置右键菜单</code></pre></div>
+
+<!-- TOAST -->
+<h2 id="toast">Toast — 通知</h2>
+<div class="api-item"><pre><code>showToast("Operation completed!", IconType::Check, 2.5f);
+// IconType: Info / Check / Warning / Error / CheckCircle
+// 第3参数: 显示时长(秒)</code></pre></div>
+
+<!-- TOOLTIP -->
+<h2 id="tooltip">Tooltip — 提示</h2>
+<div class="api-item"><pre><code>setTooltip(widget, "Hover text");
+// 悬停约0.75秒后自动显示，支持 Top/Bottom/Left/Right/Auto 位置</code></pre></div>
+
+<!-- LINK -->
+<h2 id="link">Link — 超链接</h2>
+<div class="api-item"><pre><code>auto link = std::make_unique&lt;Link&gt;("GitHub");
+link->setUrl("https://github.com");
+link->setColorRole(ColorRole::Danger);
+link->setUnderline(false);
+link->setOnClick([](){ ... });</code></pre></div>
+
+<!-- AVATAR -->
+<h2 id="avatar">Avatar — 头像</h2>
+<div class="api-item"><pre><code>auto av = std::make_unique&lt;Avatar&gt;();
+av->setName("Alice");            // 自动提取首字母
+av->setInitials("CD");           // 手动设置首字母
+av->setSize(40);                 // 直径
+av->setColorRole(ColorRole::Accent);</code></pre></div>
+
+<!-- IMAGE -->
+<h2 id="image">Image — 图片</h2>
+<div class="api-item"><pre><code>auto img = std::make_unique&lt;Image&gt;();
+img->setTexture(texId, w, h);
+img->setScaleMode(Image::ScaleMode::Fit); // Stretch/Fit/Fill/None
+img->setImageRadius(8);
+img->setImageShadow({0,4}, 12, Color{0,0,0,0.3f});</code></pre></div>
+
+<!-- LOADING -->
+<h2 id="loading">LoadingSpinner — 加载动画</h2>
+<div class="api-item"><pre><code>auto spin = std::make_unique&lt;LoadingSpinner&gt;();
+spin->setSpinnerSize(32);        // 尺寸
+spin->setSpeed(5.0f);            // 旋转速度
+spin->setColorRole(ColorRole::Accent);</code></pre></div>
+
+<!-- BORDER -->
+<h2 id="border">Border — 边框</h2>
+<div class="api-item"><pre><code>auto bd = std::make_unique&lt;Border&gt;();
+bd->setStroke(2, Color{0.5f,0.5f,0.6f,1});  // 粗细+颜色
+bd->setCornerRadius(8);
+bd->setBorderStyle(Border::Dashed);          // Solid/Dashed/Dotted
+bd->setChild(std::move(content));</code></pre></div>
+
+<!-- MENU -->
+<h2 id="menu">NavMenu — 导航菜单</h2>
+<div class="api-item"><pre><code>auto nav = std::make_unique&lt;NavMenu&gt;();
+nav->setItems({
+    {"Dashboard", IconType::Home, [](){}, true, {}},
+    {"Settings",  IconType::Settings, nullptr, true, {
+        {"Profile", IconType::None, [](){}, true, {}},
+    }},
+});</code></pre></div>
+
+<!-- MESSAGE -->
+<h2 id="message">MessageBubble — 消息气泡</h2>
+<div class="api-item"><pre><code>auto mb = std::make_unique&lt;MessageBubble&gt;();
+mb->setSender("Alice", "A", Color{0.3f,0.5f,0.9f,1});
+mb->setText("Hello!");
+mb->setTime("10:30");
+mb->setSide(MessageBubble::Left);  // Left/Right
+mb->setVariant(MessageBubble::Card);// Default/Compact/Card
+mb->setColorRole(ColorRole::Danger);</code></pre></div>
+
+<!-- FORM -->
+<h2 id="form">Form — 表单</h2>
+<div class="api-item"><h4>字段与提交</h4>
+<pre><code>auto fm = std::make_unique&lt;Form&gt;();
+fm->setFont(font);
+fm->setSpacing(8);
+fm->setPadding({8,8,8,8});
+fm->addField("Username", std::make_unique&lt;TextInput&gt;());          // Top模式
+fm->addField("Email", std::make_unique&lt;TextInput&gt;(), FormLabelPos::Left); // Left模式
+fm->addField("Age", std::make_unique&lt;InputNumber&gt;());
+fm->addField("Subscribe", std::make_unique&lt;Checkbox&gt;("Yes"));
+fm->setSubmitButton("Submit");  // 自动收集所有字段值并输出到控制台
+// submit() 支持: TextInput/TextEdit/InputNumber/Checkbox/Switch/
+//              Dropdown/Select/Slider/DatePicker</code></pre></div>
+
+<!-- SPACE -->
+<h2 id="space">Spacer / Divider</h2>
+<div class="api-item"><pre><code>auto gap = std::make_unique&lt;Spacer&gt;(SpaceSize::MD); // XS/SM/MD/LG/XL
+auto div = std::make_unique&lt;Divider&gt;(Divider::Horizontal, DividerStyle::Solid);</code></pre></div>
+
+<!-- THEME -->
+<h2 id="theme">Theme — 主题</h2>
+<div class="api-item"><h4>颜色角色 (20种)</h4>
+<pre><code>Theme dark = Theme::defaultDark();
+Theme light = Theme::defaultLight();
+auto& t = dark;
+t.setColor(ColorRole::Primary, Color::fromHex(0xFF6366F1));
+t.setColor(ColorRole::Success, Color::fromHex(0xFF22C55E));
+Color c = t.color(ColorRole::Bg); // 读取主题色
+
+// 主题切换动画
+ThemeTransition transition;
+transition.setTarget(light, 0.5f);      // 0.5秒过渡
+transition.tick(dt);                    // 每帧调用
+const Theme& current = transition.current();</code></pre></div>
+
+<!-- CLIPBOARD -->
+<h2 id="clipboard">Clipboard — 剪贴板</h2>
+<div class="api-item"><pre><code>Clipboard::set("text to copy");
+std::string text = Clipboard::get();</code></pre></div>
+
+<!-- THREADPOOL -->
+<h2 id="threadpool">ThreadPool — 线程池</h2>
+<div class="api-item"><pre><code>auto& pool = ThreadPool::instance();
+auto future = pool.enqueue([](){ return heavyWork(); });
+pool.parallelFor(0, 100, [](size_t i){ process(i); });</code></pre></div>
+
+</div></body></html>

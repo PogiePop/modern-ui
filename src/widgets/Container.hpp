@@ -14,9 +14,9 @@ public:
     void setDirection(LayoutDirection dir);
     LayoutDirection direction() const { return m_direction; }
 
-    void setPadding(const EdgeInsets& p) { m_padding = p; m_basePadding = p; invalidateMeasureCache(); }
+    void setPadding(const EdgeInsets& p) { m_padding = p; m_basePadding = p; }
     EdgeInsets padding() const { return m_padding; }
-    void setSpacing(float s) { m_spacing = s; m_baseSpacing = s; invalidateMeasureCache(); }
+    void setSpacing(float s) { m_spacing = s; m_baseSpacing = s; }
     float spacing() const { return m_spacing; }
     void setResponsive(bool r) { m_responsive = r; }
 
@@ -48,12 +48,6 @@ private:
     std::optional<Color> m_bgColor;
     std::vector<ChildLayoutInfo> m_childLayout;
     Align m_align = Align::Start;
-
-    // Measurement cache (EUI-NEO pattern) — avoids redundant measure() calls
-    mutable Size m_cachedAvailable{0, 0};
-    mutable Size m_cachedMeasure{0, 0};
-    mutable bool m_measureCacheValid = false;
-    void invalidateMeasureCache() { m_measureCacheValid = false; }
 };
 
 } // namespace ui

@@ -25,10 +25,6 @@ void Container::setChildSizing(size_t i, Sizing h, Sizing v) {
 }
 
 Size Container::measure(const Size& a) const {
-    // Use measurement cache if available size unchanged (EUI-NEO pattern)
-    if (m_measureCacheValid && m_cachedAvailable.width == a.width && m_cachedAvailable.height == a.height) {
-        return m_cachedMeasure;
-    }
     float w=0,h=0;
     if (m_children.empty()) { w=m_padding.horizontal(); h=m_padding.vertical(); }
     else if (m_direction==LayoutDirection::Horizontal) {
@@ -52,10 +48,6 @@ Size Container::measure(const Size& a) const {
     }
     if(w<m_minWidth)w=m_minWidth;if(h<m_minHeight)h=m_minHeight;
     if(w>m_maxWidth)w=m_maxWidth;if(h>m_maxHeight)h=m_maxHeight;
-    // Cache the result
-    m_cachedAvailable = a;
-    m_cachedMeasure = {w, h};
-    m_measureCacheValid = true;
     return {w,h};
 }
 
@@ -131,7 +123,7 @@ void Container::layout() {
             if(cw2>c->maxWidth())cw2=c->maxWidth();if(ch2>c->maxHeight())ch2=c->maxHeight();
             c->setBounds({cx,y,cw2,ch2});y+=ch2+m_spacing+xg;}
     }
-    for (auto& c:m_children) c->layout();
+    for (auto& c : m_children) c->layout();
 }
 
 void Container::paint(Painter& painter) {

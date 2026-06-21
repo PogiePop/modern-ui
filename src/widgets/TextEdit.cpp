@@ -6,6 +6,7 @@
 #include "res/Theme.hpp"
 #include "utils/Clipboard.hpp"
 #include <algorithm>
+#include <vector>
 #include <cstdio>
 
 namespace ui {
@@ -160,6 +161,9 @@ void TextEdit::deleteSelection() {
 void TextEdit::deleteRange(size_t from, size_t to) {
     if (from >= to || from >= m_text.size()) return;
     if (to > m_text.size()) to = m_text.size();
+    from = utf8PrevCharStart(m_text, from);
+    while (to < m_text.size() && (m_text[to] & 0xC0) == 0x80) to++;
+    if (from >= to) return;
     pushUndo();
     m_text.erase(from, to - from);
     m_cursorPos = from;
@@ -214,12 +218,18 @@ void TextEdit::moveCursorTo(float x, float y) {
     if (line >= lines.size()) line = lines.size() > 0 ? lines.size() - 1 : 0;
     if (lines.empty()) { m_cursorPos = 0; return; }
     const std::string& ln = lines[line];
-    size_t lo = 0, hi = ln.size();
-    while (lo < hi) {
-        size_t mid = (lo + hi + 1) / 2;
-        if (m_font->measureText(ln.substr(0, mid)) <= x) lo = mid;
-        else hi = mid - 1;
+    // Build codepoint offset table for O(1) bytePos lookups
+    std::vector<size_t> cpOffsets;
+    for (size_t i = 0; i < ln.size(); i++) if ((ln[i] & 0xC0) != 0x80) cpOffsets.push_back(i);
+    size_t cpCount = cpOffsets.size();
+    size_t cpLo = 0, cpHi = cpCount;
+    while (cpLo < cpHi) {
+        size_t cpMid = (cpLo + cpHi + 1) / 2;
+        size_t bytePos = (cpMid < cpCount) ? cpOffsets[cpMid] : ln.size();
+        if (m_font->measureText(ln.substr(0, bytePos)) <= x) cpLo = cpMid;
+        else cpHi = cpMid - 1;
     }
+    size_t lo = (cpLo < cpCount) ? cpOffsets[cpLo] : ln.size();
     m_cursorPos = lineColToCursor(lines, m_text, line, lo);
 }
 void TextEdit::textChanged() { if (m_onTextChanged) m_onTextChanged(m_text); }

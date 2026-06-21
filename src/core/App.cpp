@@ -182,6 +182,16 @@ void App::processEvents() {
 void App::processMouseEvent(MouseEvent& event) {
     m_lastMousePos = event.globalPos;
 
+    // Helper: compute local coordinates by accumulating parent bounds (browser model)
+    auto computeLocal = [](Widget* w, Point global) -> Point {
+        Point accum = w->bounds().topLeft();
+        for (Widget* p = w->parent(); p; p = p->parent()) {
+            accum.x += p->bounds().x - p->scrollOffsetX();
+            accum.y += p->bounds().y - p->scrollOffsetY();
+        }
+        return {global.x - accum.x, global.y - accum.y};
+    };
+
     // Overlay gets first priority
     if (m_overlay && m_overlay->visible()) {
         Rect osr = m_overlay->screenRect();
@@ -199,18 +209,14 @@ void App::processMouseEvent(MouseEvent& event) {
 
     // If we have pointer capture, deliver directly to capture widget
     if (m_captureWidget && event.type != MouseEvent::Move) {
-        Rect sr = m_captureWidget->screenRect();
-        event.localPos = event.globalPos;
-        event.localPos.x -= sr.x;
-        event.localPos.y -= sr.y;
-
+        event.localPos = computeLocal(m_captureWidget, event.globalPos);
         switch (event.type) {
         case MouseEvent::Down:
             m_captureWidget->onMouseDown(event);
             break;
         case MouseEvent::Up:
             m_captureWidget->onMouseUp(event);
-            m_captureWidget = nullptr; // release capture
+            m_captureWidget = nullptr;
             break;
         default: break;
         }
@@ -219,16 +225,17 @@ void App::processMouseEvent(MouseEvent& event) {
 
     // For Move events with capture, still deliver to capture
     if (m_captureWidget && event.type == MouseEvent::Move) {
-        Rect sr = m_captureWidget->screenRect();
-        event.localPos = event.globalPos;
-        event.localPos.x -= sr.x;
-        event.localPos.y -= sr.y;
+        event.localPos = computeLocal(m_captureWidget, event.globalPos);
         m_captureWidget->onMouseMove(event);
         return;
     }
 
     // Hit test to find target
     Widget* target = hitTest(event.globalPos);
+    if (event.type == MouseEvent::Down) {
+        printf("[App] click global=(%.0f,%.0f) target=%s\n",
+               event.globalPos.x, event.globalPos.y, target ? target->typeName() : "null");
+    }
 
     // Handle Enter/Leave for the Move event
     if (event.type == MouseEvent::Move) {
@@ -255,14 +262,10 @@ void App::processMouseEvent(MouseEvent& event) {
         }
     }
 
-    // Dispatch event via bubble — use screenRect (visual position) for scroll-aware coords
+    // Dispatch event via bubble — accumulate parent bounds like hitTest (browser model)
     Widget* dispatcher = target;
     while (dispatcher) {
-        Rect sr = dispatcher->screenRect();
-        event.localPos = event.globalPos;
-        event.localPos.x -= sr.x;
-        event.localPos.y -= sr.y;
-
+        event.localPos = computeLocal(dispatcher, event.globalPos);
         bool handled = false;
         switch (event.type) {
         case MouseEvent::Down:

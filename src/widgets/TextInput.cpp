@@ -6,6 +6,7 @@
 #include "res/Theme.hpp"
 #include "utils/Clipboard.hpp"
 #include <algorithm>
+#include <vector>
 #include <cctype>
 
 namespace ui {
@@ -92,9 +93,35 @@ void TextInput::deleteSelection() {
     deleteRange(s, e);
 }
 
+// UTF-8 helpers
+static size_t utf8PrevCharStart(const std::string& s, size_t pos) {
+    if (pos == 0) return 0;
+    size_t i = pos - 1;
+    while (i > 0 && (s[i] & 0xC0) == 0x80) i--;
+    return i;
+}
+static size_t utf8NextCharStart(const std::string& s, size_t pos) {
+    if (pos >= s.size()) return s.size();
+    size_t i = pos;
+    while (i < s.size() && (s[i] & 0xC0) == 0x80) i++;
+    if (i < s.size()) {
+        unsigned char c = (unsigned char)s[i];
+        if (c < 0x80) i += 1;
+        else if ((c & 0xE0) == 0xC0) i += 2;
+        else if ((c & 0xF0) == 0xE0) i += 3;
+        else if ((c & 0xF8) == 0xF0) i += 4;
+        else i += 1;
+    }
+    return i;
+}
+
 void TextInput::deleteRange(size_t from, size_t to) {
     if (from >= to || from >= m_text.size()) return;
     if (to > m_text.size()) to = m_text.size();
+    // Align to UTF-8 character boundaries to avoid splitting multi-byte chars
+    from = utf8PrevCharStart(m_text, from);
+    while (to < m_text.size() && (m_text[to] & 0xC0) == 0x80) to++; // extend to next char boundary
+    if (from >= to) return;
     pushUndo();
     m_text.erase(from, to - from);
     m_cursorPos = from;
@@ -109,29 +136,6 @@ void TextInput::insertText(const std::string& str) {
     m_cursorPos += str.size();
     clearSelection();
     textChanged();
-}
-
-// UTF-8: find start of codepoint at or before byte position
-static size_t utf8PrevCharStart(const std::string& s, size_t pos) {
-    if (pos == 0) return 0;
-    size_t i = pos - 1;
-    while (i > 0 && (s[i] & 0xC0) == 0x80) i--;
-    return i;
-}
-// UTF-8: find start of next codepoint after byte position
-static size_t utf8NextCharStart(const std::string& s, size_t pos) {
-    if (pos >= s.size()) return s.size();
-    size_t i = pos;
-    while (i < s.size() && (s[i] & 0xC0) == 0x80) i++;
-    if (i < s.size()) {
-        unsigned char c = (unsigned char)s[i];
-        if (c < 0x80) i += 1;
-        else if ((c & 0xE0) == 0xC0) i += 2;
-        else if ((c & 0xF0) == 0xE0) i += 3;
-        else if ((c & 0xF8) == 0xF0) i += 4;
-        else i += 1;
-    }
-    return i;
 }
 
 void TextInput::deleteBackward() {
@@ -191,14 +195,29 @@ void TextInput::setCursorPos(size_t pos, bool extendSelection) {
 }
 
 size_t TextInput::posAtX(const std::string& prefix, float x) const {
+    if (x <= 0) return 0;
     if (m_font) {
-        size_t lo = 0, hi = prefix.size();
-        while (lo < hi) {
-            size_t mid = (lo + hi + 1) / 2;
-            if (m_font->measureText(prefix.substr(0, mid)) <= x) lo = mid;
-            else hi = mid - 1;
+        // Build UTF-8 codepoint byte-offset table once (fast indexed access)
+        std::vector<size_t> cpOffsets; // byte offset of each codepoint start
+        cpOffsets.reserve(prefix.size());
+        for (size_t i = 0; i < prefix.size(); i++)
+            if ((prefix[i] & 0xC0) != 0x80) cpOffsets.push_back(i);
+
+        size_t cpCount = cpOffsets.size();
+        if (cpCount == 0) return 0;
+
+        // Binary search on codepoint indices
+        size_t cpLo = 0, cpHi = cpCount; // cpHi = cpCount means "after last char"
+        while (cpLo < cpHi) {
+            size_t cpMid = (cpLo + cpHi + 1) / 2;
+            // bytePos = end of cpMid codepoints (start of next, or end of string)
+            size_t bytePos = (cpMid < cpCount) ? cpOffsets[cpMid] : prefix.size();
+            float w = m_font->measureText(prefix.substr(0, bytePos));
+            if (w <= x) cpLo = cpMid;
+            else cpHi = cpMid - 1;
         }
-        return lo;
+        // Return byte offset of cpLo-th codepoint (cursor position)
+        return (cpLo < cpCount) ? cpOffsets[cpLo] : prefix.size();
     }
     float cw = charWidth();
     size_t pos = static_cast<size_t>(std::max(0.0f, x / cw));
@@ -330,6 +349,10 @@ void TextInput::paint(Painter& painter) {
 
 // ── Mouse ──
 bool TextInput::onMouseDown(MouseEvent& e) {
+    printf("[TI] btn=%d local=(%.1f,%.1f) global=(%.1f,%.1f) bounds=(%.1f,%.1f,%.1f,%.1f)\n",
+           e.button, e.localPos.x, e.localPos.y, e.globalPos.x, e.globalPos.y,
+           m_bounds.x, m_bounds.y, m_bounds.width, m_bounds.height);
+
     // Check for clear button click (small X at right edge when text is non-empty)
     bool hasClear = !m_text.empty();
     float clearX = m_bounds.width - 20;
@@ -339,9 +362,12 @@ bool TextInput::onMouseDown(MouseEvent& e) {
     }
 
     if (e.button == 0) {
-        float relX = e.localPos.x - m_padding.left + m_scrollX;
-        size_t newPos = posAtX(m_text, relX);
-        bool extend = (e.mods & 0x1) != 0; // Shift
+        float textX = e.localPos.x - m_padding.left + m_scrollX;
+        if (textX < 0) textX = 0;
+        size_t newPos = posAtX(m_text, textX);
+        printf("[TI] textX=%.1f text='%s' len=%zu newPos=%zu\n",
+               textX, m_text.c_str(), m_text.size(), newPos);
+        bool extend = (e.mods & 0x1) != 0;
         setCursorPos(newPos, extend);
         if (!extend) { m_selStart = m_selEnd = newPos; }
         m_cursorPos = newPos;

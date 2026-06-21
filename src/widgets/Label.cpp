@@ -1,6 +1,7 @@
 #include "Label.hpp"
 #include "ContextMenu.hpp"
 #include "core/Painter.hpp"
+#include <vector>
 #include "core/Event.hpp"
 #include "res/Font.hpp"
 #include "res/Theme.hpp"
@@ -44,13 +45,18 @@ void Label::copy() { if (hasSelection()) Clipboard::set(selectedText()); }
 
 size_t Label::posAtX(float x) const {
     if (!m_font) return static_cast<size_t>(std::max(0.0f, x / (m_fontSize * 0.55f)));
-    size_t lo = 0, hi = m_text.size();
-    while (lo < hi) {
-        size_t mid = (lo + hi + 1) / 2;
-        if (m_font->measureText(m_text.substr(0, mid)) <= x) lo = mid;
-        else hi = mid - 1;
+    std::vector<size_t> cpOffsets;
+    for (size_t i = 0; i < m_text.size(); i++) if ((m_text[i] & 0xC0) != 0x80) cpOffsets.push_back(i);
+    size_t cpCount = cpOffsets.size();
+    if (cpCount == 0) return 0;
+    size_t cpLo = 0, cpHi = cpCount;
+    while (cpLo < cpHi) {
+        size_t cpMid = (cpLo + cpHi + 1) / 2;
+        size_t bytePos = (cpMid < cpCount) ? cpOffsets[cpMid] : m_text.size();
+        if (m_font->measureText(m_text.substr(0, bytePos)) <= x) cpLo = cpMid;
+        else cpHi = cpMid - 1;
     }
-    return lo;
+    return (cpLo < cpCount) ? cpOffsets[cpLo] : m_text.size();
 }
 
 void Label::showContextMenu(float x, float y) {

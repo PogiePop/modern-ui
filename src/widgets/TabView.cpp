@@ -105,9 +105,19 @@ void TabView::layout() {
     float contentH = m_bounds.height - TAB_HEIGHT;
     if (contentH < 0) contentH = 0;
     m_scrollArea->setBounds({0, TAB_HEIGHT, m_bounds.width, contentH});
+
+    // Restore saved scroll state for current tab BEFORE layout re-measures content
+    if (m_currentTab < m_tabStates.size()) {
+        m_scrollArea->setScrollX(m_tabStates[m_currentTab].scrollX);
+        m_scrollArea->setScrollY(m_tabStates[m_currentTab].scrollY);
+    }
+
     m_scrollArea->layout();
 
+    // Clamp and save scroll state AFTER content is measured
     if (m_currentTab < m_tabStates.size()) {
+        m_scrollArea->setScrollX(std::min(m_scrollArea->scrollX(), m_scrollArea->maxScrollX()));
+        m_scrollArea->setScrollY(std::min(m_scrollArea->scrollY(), m_scrollArea->maxScrollY()));
         m_tabStates[m_currentTab].scrollX = m_scrollArea->scrollX();
         m_tabStates[m_currentTab].scrollY = m_scrollArea->scrollY();
     }

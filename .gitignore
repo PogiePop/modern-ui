@@ -1,5 +1,6 @@
 build/
 .claude/
+*.zip
 CLAUDE.md
 *.exe
 *.pdb
