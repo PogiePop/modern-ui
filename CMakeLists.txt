@@ -31,8 +31,9 @@ link_directories(external/glfw/lib-vc2022)
 target_link_libraries(modernui_static PUBLIC glfw3 glad opengl32)
 add_library(modernui ALIAS modernui_static)
 
-# DLL version
+# DLL version (auto-export all symbols on Windows)
 add_library(modernui_shared SHARED ${modern_ui_src})
+set_target_properties(modernui_shared PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 target_include_directories(modernui_shared PUBLIC
     src
     external/glad/include
