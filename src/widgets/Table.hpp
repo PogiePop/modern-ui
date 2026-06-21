@@ -13,6 +13,8 @@ public:
     void addRow(const std::vector<std::string>& cells);
     void clearRows();
     void setFont(class Font* f) { m_font = f; }
+    void setRowHeight(float h) { m_rowH = h; }
+    void setHeaderHeight(float h) { m_headerH = h; }
 
     const char* typeName() const override { return "Table"; }
     Size measure(const Size& a) const override;
@@ -23,7 +25,7 @@ private:
     std::vector<float> m_widths;
     std::vector<std::vector<std::string>> m_rows;
     class Font* m_font = nullptr;
-    static constexpr float ROW_H = 28, HEADER_H = 32;
+    float m_rowH = 28, m_headerH = 32;
 };
 
 } // namespace ui

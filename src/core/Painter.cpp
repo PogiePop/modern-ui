@@ -40,41 +40,37 @@ void Painter::drawText(const Rect& bounds, const std::string& text,
                        Font& font, const Color& color, TextAlign align) {
     if (text.empty()) return;
 
-    GLuint tex = font.atlasTexture();
-    if (!tex) return;
-
-    // Measure total width for alignment
+    // Total width for alignment
     float totalWidth = font.measureText(text);
 
-    // Starting x position
     float startX = bounds.x;
-    if (align == TextAlign::Center) {
-        startX = bounds.x + (bounds.width - totalWidth) * 0.5f;
-    } else if (align == TextAlign::Right) {
-        startX = bounds.x + bounds.width - totalWidth;
-    }
+    if (align == TextAlign::Center) startX = bounds.x + (bounds.width - totalWidth) * 0.5f;
+    else if (align == TextAlign::Right) startX = bounds.x + bounds.width - totalWidth;
 
-    // Vertical: center within bounds
     float baseline = bounds.y + (bounds.height - font.lineHeight()) * 0.5f + font.ascent();
-
     float penX = startX;
-    for (char c : text) {
-        const auto& g = font.getGlyph(c);
+    const char* p = text.c_str();
+    while (*p) {
+        uint32_t cp = decodeUtf8(p);
+        auto* gm = font.getGlyph(cp);
+        if (!gm) continue;
 
-        // Don't draw spaces, just advance
-        if (c != ' ') {
-            float x0 = penX + g.x0;
-            float y0 = baseline + g.y0;
-            float x1 = penX + g.x1;
-            float y1 = baseline + g.y1;
-
-            m_batcher.drawTexturedRect(
-                {x0, y0, x1 - x0, y1 - y0},
-                g.s0, g.t0, g.s1, g.t1,
-                color, tex);
+        if (cp != ' ') {
+            // Bind correct atlas page for this glyph (multi-atlas support)
+            GLuint pageTex = font.atlasTexture(gm->atlasPage);
+            if (pageTex) {
+                m_batcher.bindTexture(pageTex);
+                float x0 = penX + gm->x0;
+                float y0 = baseline + gm->y0;
+                float x1 = penX + gm->x1;
+                float y1 = baseline + gm->y1;
+                m_batcher.drawTexturedRect(
+                    {x0, y0, x1 - x0, y1 - y0},
+                    gm->s0, gm->t0, gm->s1, gm->t1,
+                    color, pageTex);
+            }
         }
-
-        penX += g.xAdvance;
+        penX += gm->xAdvance;
     }
 }
 
@@ -86,8 +82,13 @@ void Painter::drawText(const Rect& bounds, const std::string& text,
 }
 
 float Painter::measureTextWidth(const std::string& text) const {
-    if (m_font) return m_font->measureText(text);
-    return text.size() * 8.0f; // fallback
+    if (!m_font) return text.size() * 8.0f; // fallback
+    // Check cache first
+    auto it = m_textCache.find(text);
+    if (it != m_textCache.end()) return it->second;
+    float w = m_font->measureText(text);
+    m_textCache[text] = w;
+    return w;
 }
 
 void Painter::drawImage(const Rect& rect, GLuint texture, const Color& tint) {

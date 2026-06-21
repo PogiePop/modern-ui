@@ -8,6 +8,9 @@
 #include "res/Font.hpp"
 #include "res/BlurShader.hpp"
 #include "DialogWindow.hpp"
+#include "utils/Clipboard.hpp"
+#include "utils/ThreadPool.hpp"
+#include "core/Config.hpp"
 #include "Animation.hpp"
 #include "widgets/Widget.hpp"
 #include "widgets/Container.hpp"
@@ -23,7 +26,9 @@
 
 namespace ui {
 
-App::App() = default;
+App* App::s_instance = nullptr;
+
+App::App() { s_instance = this; }
 
 App::~App() {
     shutdown();
@@ -37,6 +42,9 @@ bool App::init(const char* title, int width, int height) {
 
     // Wire GLFW callbacks to App
     m_window->setApp(this);
+
+    // Initialize clipboard with GLFW window handle
+    Clipboard::setWindow(m_window->handle());
 
     m_batcher = std::make_unique<QuadBatcher>();
     if (!m_batcher->init()) {
@@ -221,12 +229,6 @@ void App::processMouseEvent(MouseEvent& event) {
 
     // Hit test to find target
     Widget* target = hitTest(event.globalPos);
-
-    if (event.type == MouseEvent::Down) {
-        // Debug: uncomment to trace events
-        // fprintf(stderr, "[Mouse] click=(%.0f,%.0f) target=%s\n",
-        //         event.globalPos.x, event.globalPos.y, target ? target->typeName() : "null");
-    }
 
     // Handle Enter/Leave for the Move event
     if (event.type == MouseEvent::Move) {
@@ -443,13 +445,26 @@ void App::update() {
     }
 }
 
+void App::setMultiThreaded(bool enable) {
+    Config::instance().multiThreaded = enable;
+    m_multiThreaded = enable;
+    if (enable) ThreadPool::init(Config::instance().renderThreads);
+}
+
 void App::relayout() {
     if (!m_root) return;
-
     auto fbSize = m_window->framebufferSize();
-
     Size rootSize = m_root->measure(fbSize);
     m_root->setBounds({0, 0, fbSize.width, fbSize.height});
+
+    if (m_multiThreaded && ThreadPool::instance().workerCount() > 1) {
+        // Parallel measure first-level children for layout
+        auto& pool = ThreadPool::instance();
+        pool.parallelFor(0, m_root->childCount(), [this](size_t i) {
+            auto* child = m_root->childAt(i);
+            if (child->visible()) child->measure(m_root->bounds().size());
+        });
+    }
     m_root->layout();
 }
 
@@ -475,11 +490,11 @@ void App::render() {
         m_root->paint(*m_painter);
     }
 
-    // Frosted glass: capture background before overlay
-    if (m_overlay && m_overlay->visible()) {
-        m_painter->end(); // flush current batch
+    // Frosted glass: only blur if overlay explicitly requests it (frosted() flag)
+    if (m_overlay && m_overlay->visible() && m_overlay->frosted()) {
+        m_painter->end();
         m_blur->captureAndBlur((int)w, (int)h);
-        m_painter->begin(proj); // restart painter
+        m_painter->begin(proj);
     }
 
     // Paint overlay on top of everything

@@ -59,6 +59,15 @@ bool QuadBatcher::init() {
     createWhiteTexture();
     setupVAO();
     m_vertices.reserve(4096);
+
+    // Initialize GL state cache
+    glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&m_boundProgram);
+    m_boundVAO = 0;
+    m_boundTexture = m_whiteTexture;
+    m_scissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
+    m_blendEnabled = glIsEnabled(GL_BLEND);
+    if (!m_blendEnabled) { glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); m_blendEnabled = true; }
+
     return true;
 }
 
@@ -67,15 +76,19 @@ void QuadBatcher::shutdown() {
     if (m_vao) { glDeleteVertexArrays(1, &m_vao); m_vao = 0; }
     if (m_whiteTexture) { glDeleteTextures(1, &m_whiteTexture); m_whiteTexture = 0; }
     m_shader.reset(); m_roundedShader.reset(); m_vertices.clear();
+    m_boundProgram = 0; m_boundVAO = 0; m_boundTexture = 0;
 }
 
 void QuadBatcher::createWhiteTexture() {
     unsigned char w[4] = {255,255,255,255};
-    glGenTextures(1, &m_whiteTexture); glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
+    glGenTextures(1, &m_whiteTexture);
+    m_boundTexture = m_whiteTexture;
+    glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, w);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0); m_currentTexture = m_whiteTexture;
+    glBindTexture(GL_TEXTURE_2D, 0);
+    m_currentTexture = m_whiteTexture;
 }
 
 void QuadBatcher::setupVAO() {
@@ -85,6 +98,7 @@ void QuadBatcher::setupVAO() {
     glEnableVertexAttribArray(1); glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (void*)8);
     glEnableVertexAttribArray(2); glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (void*)16);
     glBindVertexArray(0);
+    m_boundVAO = 0;
 }
 
 static void vpush(std::vector<QuadVertex>& v, float x, float y, float u, float vv, float r, float g, float b, float a) {
@@ -104,6 +118,8 @@ void QuadBatcher::addQuad(const Rect& r, float u0, float v0, float u1, float v1,
 void QuadBatcher::begin(const glm::mat4& p) {
     m_projection = p; m_currentTexture = m_whiteTexture; m_vertices.clear();
     if (p[1][1] != 0) m_fbHeight = (int)(2.0f / -p[1][1]);
+    // Ensure blend is enabled
+    if (!m_blendEnabled) { glEnable(GL_BLEND); m_blendEnabled = true; }
 }
 
 void QuadBatcher::end() { flush(); }
@@ -138,26 +154,32 @@ void QuadBatcher::drawRoundedGradientRect(const Rect& rect, const Color& top, co
     if (r*2 > rect.height) r = rect.height*0.5f;
     flush();
 
-    m_roundedShader->bind();
+    GLuint prog = m_roundedShader->program();
+    if (m_boundProgram != prog) { glUseProgram(prog); m_boundProgram = prog; }
+
     m_roundedShader->setMat4("uProj", &m_projection[0][0]);
-    GLint rl = glGetUniformLocation(m_roundedShader->program(), "uRect");
-    GLint al = glGetUniformLocation(m_roundedShader->program(), "uRadius");
-    GLint cl = glGetUniformLocation(m_roundedShader->program(), "uColor");
-    GLint fl = glGetUniformLocation(m_roundedShader->program(), "uFbSize");
+    GLint rl = glGetUniformLocation(prog, "uRect");
+    GLint al = glGetUniformLocation(prog, "uRadius");
+    GLint cl = glGetUniformLocation(prog, "uColor");
+    GLint fl = glGetUniformLocation(prog, "uFbSize");
     if (rl != -1) glUniform4f(rl, rect.x, rect.y, rect.width, rect.height);
     if (al != -1) glUniform1f(al, r);
     if (cl != -1) glUniform4f(cl, top.r, top.g, top.b, top.a);
     if (fl != -1) glUniform2f(fl, (float)rect.width+rect.x+2, (float)m_fbHeight);
+
+    if (m_boundVAO != m_vao) { glBindVertexArray(m_vao); m_boundVAO = m_vao; }
 
     float x0 = rect.x-2, y0 = rect.y-2, x1 = rect.x+rect.width+2, y1 = rect.y+rect.height+2;
     QuadVertex q[6] = {
         {x0,y0,0,0,1,1,1,1},{x1,y0,1,0,1,1,1,1},{x1,y1,1,1,1,1,1,1},
         {x0,y0,0,0,1,1,1,1},{x1,y1,1,1,1,1,1,1},{x0,y1,0,1,1,1,1,1},
     };
-    glBindVertexArray(m_vao); glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(q), q, GL_DYNAMIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0); glUseProgram(0);
+    m_drawCallCount++;
+
+    m_boundProgram = 0; glUseProgram(0);
 }
 
 void QuadBatcher::bindTexture(GLuint t) {
@@ -167,22 +189,77 @@ void QuadBatcher::bindTexture(GLuint t) {
 
 void QuadBatcher::flush() {
     if (m_vertices.empty() || !m_shader) return;
-    m_shader->bind();
+
+    // State caching: only change what's needed (EUI-NEO pattern)
+    GLuint prog = m_shader->program();
+    if (m_boundProgram != prog) { glUseProgram(prog); m_boundProgram = prog; }
+
     m_shader->setMat4("uProj", &m_projection[0][0]);
     m_shader->setInt("uTex", 0);
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, m_currentTexture);
-    glBindVertexArray(m_vao); glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+
+    if (m_boundTexture != m_currentTexture) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_currentTexture);
+        m_boundTexture = m_currentTexture;
+    }
+
+    if (m_boundVAO != m_vao) { glBindVertexArray(m_vao); m_boundVAO = m_vao; }
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(m_vertices.size()*sizeof(QuadVertex)), m_vertices.data(), GL_DYNAMIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)m_vertices.size());
-    glBindVertexArray(0); glBindTexture(GL_TEXTURE_2D, 0); glUseProgram(0);
+    m_drawCallCount++;
+    m_flushCount++;
     m_vertices.clear();
 }
 
 void QuadBatcher::pushClip(const Rect& rect, int fbH) {
-    flush(); glEnable(GL_SCISSOR_TEST);
+    flush();
+    // Save current state onto stack
+    m_clipStack.push_back({m_scissorX, m_scissorY, m_scissorW, m_scissorH, m_scissorEnabled});
+
+    // Compute new scissor rect (in OpenGL framebuffer coords)
+    GLint sx = (GLint)rect.x;
     GLint sy = fbH - (GLint)(rect.y + rect.height);
-    glScissor((GLint)rect.x, sy, (GLsizei)rect.width, (GLsizei)rect.height);
+    GLsizei sw = (GLsizei)rect.width;
+    GLsizei sh = (GLsizei)rect.height;
+
+    // Intersect with current scissor if already enabled
+    if (m_scissorEnabled) {
+        GLint rx = (std::max)(sx, m_scissorX);
+        GLint ry = (std::max)(sy, m_scissorY);
+        GLint rr = (std::min)(sx + sw, m_scissorX + m_scissorW);
+        GLint rb = (std::min)(sy + sh, m_scissorY + m_scissorH);
+        sx = rx; sy = ry;
+        sw = (std::max)(0, rr - rx);
+        sh = (std::max)(0, rb - ry);
+    }
+
+    glEnable(GL_SCISSOR_TEST);
+    m_scissorEnabled = true;
+    glScissor(sx, sy, sw, sh);
+    m_scissorX = sx; m_scissorY = sy; m_scissorW = sw; m_scissorH = sh;
 }
-void QuadBatcher::popClip(int) { flush(); glDisable(GL_SCISSOR_TEST); }
+
+void QuadBatcher::popClip(int) {
+    flush();
+    if (m_clipStack.empty()) {
+        if (m_scissorEnabled) { glDisable(GL_SCISSOR_TEST); m_scissorEnabled = false; }
+        return;
+    }
+    // Restore previous state
+    ClipState prev = m_clipStack.back();
+    m_clipStack.pop_back();
+    if (prev.enabled) {
+        glEnable(GL_SCISSOR_TEST);
+        m_scissorEnabled = true;
+        glScissor(prev.x, prev.y, prev.w, prev.h);
+        m_scissorX = prev.x; m_scissorY = prev.y;
+        m_scissorW = prev.w; m_scissorH = prev.h;
+    } else {
+        glDisable(GL_SCISSOR_TEST);
+        m_scissorEnabled = false;
+    }
+}
 
 } // namespace ui

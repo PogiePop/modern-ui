@@ -10,6 +10,8 @@ namespace ui {
 
 class Button : public Widget {
 public:
+    enum Variant { Primary, Secondary, Danger, Success, Ghost };
+
     explicit Button(const std::string& label = "");
 
     void setLabel(const std::string& text);
@@ -18,13 +20,19 @@ public:
     void setOnClick(std::function<void()> callback);
     void click();
 
-    // Visual customization
+    // Variant: auto-configures theme-appropriate colors
+    void setVariant(Variant v);
+
+    // Manual customization (overrides variant)
     void setFont(class Font* f) { m_font = f; }
     void setCornerRadius(float r) { m_cornerRadius = r; }
-    void setGradient(Color top, Color bottom) { m_gradTop = top; m_gradBottom = bottom; m_useGradient = true; }
-    void setSolidColor(Color c) { m_solidColor = c; m_useGradient = false; }
-    void setHoverColor(Color c) { m_hoverColor = c; m_useHoverColor = true; }
-    void setPressColor(Color c) { m_pressColor = c; m_usePressColor = true; }
+    void setGradient(Color top, Color bottom) { m_gradTop = top; m_gradBottom = bottom; m_useGradient = true; m_manualColor = true; }
+    void setSolidColor(Color c) { m_solidColor = c; m_useGradient = false; m_manualColor = true; }
+    void setHoverColor(Color c) { m_hoverColor = c; m_useHoverColor = true; m_manualColor = true; }
+    void setPressColor(Color c) { m_pressColor = c; m_usePressColor = true; m_manualColor = true; }
+    void setMinWidth(float w) { m_minWidth = w; }
+    void setPill(bool pill) { m_cornerRadius = pill ? 999.0f : 8.0f; }
+    void setCompact(bool c) { m_padding = c ? EdgeInsets{6, 14, 6, 14} : EdgeInsets{10, 20, 10, 20}; }
 
     const char* typeName() const override { return "Button"; }
 
@@ -47,9 +55,12 @@ private:
     enum State { Normal, Hovered, Pressed };
     State m_state = Normal;
     bool m_focusRing = false;
+    Variant m_variant = Primary;
+    bool m_manualColor = false;
 
-    EdgeInsets m_padding{12, 16, 12, 16};
+    EdgeInsets m_padding{10, 20, 10, 20};
     float m_cornerRadius = 8;
+    float m_minWidth = 0;
 
     Color m_gradTop{0.2f, 0.4f, 0.9f, 1};
     Color m_gradBottom{0.6f, 0.2f, 0.9f, 1};
@@ -61,7 +72,8 @@ private:
     bool m_usePressColor = false;
     class Font* m_font = nullptr;
 
-    void getCurrentColors(Color& top, Color& bottom) const;
+    void getCurrentColors(Color& top, Color& bottom);
+    void applyVariantColors();
 };
 
 } // namespace ui

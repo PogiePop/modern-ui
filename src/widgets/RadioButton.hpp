@@ -1,10 +1,9 @@
 #pragma once
-
 #include <functional>
 #include <string>
 #include <vector>
-
 #include "Widget.hpp"
+#include "res/Theme.hpp"
 
 namespace ui {
 
@@ -14,7 +13,6 @@ public:
     void remove(class RadioButton* btn);
     class RadioButton* selected() const { return m_selected; }
     void select(class RadioButton* btn);
-
 private:
     std::vector<class RadioButton*> m_buttons;
     class RadioButton* m_selected = nullptr;
@@ -28,13 +26,13 @@ public:
     const std::string& label() const { return m_label; }
     bool selected() const { return m_selected; }
     void setSelected(bool sel);
-
     void setOnSelectedChanged(std::function<void(bool)> cb);
     void setGroup(RadioGroup* group);
     void setFont(class Font* f) { m_font = f; }
+    void setColorRole(ColorRole r) { m_colorRole = r; m_useColorRole = true; }
+    void setDotSize(float s) { m_dotSize = s; }
 
     const char* typeName() const override { return "RadioButton"; }
-
     Size measure(const Size& available) const override;
     void paint(Painter& painter) override;
     bool onMouseDown(MouseEvent& event) override;
@@ -49,9 +47,11 @@ private:
     bool m_selected = false;
     std::function<void(bool)> m_onSelectedChanged;
     RadioGroup* m_group = nullptr;
-    bool m_hovered = false;
-    bool m_focusRing = false;
+    bool m_hovered = false, m_focusRing = false;
     class Font* m_font = nullptr;
+    float m_dotSize = 10.0f;
+    ColorRole m_colorRole = ColorRole::Primary;
+    bool m_useColorRole = false;
 
     friend class RadioGroup;
 };

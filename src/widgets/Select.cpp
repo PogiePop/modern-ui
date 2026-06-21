@@ -15,7 +15,8 @@ void Select::setSelectedIndex(size_t i) {
     if (i < m_items.size()) { m_selected = i; if (m_onChanged) m_onChanged(i, m_items[i]); }
 }
 const std::string& Select::selectedText() const {
-    static std::string e; return m_selected < m_items.size() ? m_items[m_selected] : e;
+    static const std::string kEmpty;
+    return m_selected < m_items.size() ? m_items[m_selected] : kEmpty;
 }
 
 Size Select::measure(const Size&) const { return {150, m_items.size() * ROW_H + 4}; }
@@ -36,15 +37,14 @@ void Select::paint(Painter& p) {
     }
 }
 
+// EUI-NEO: select item by local position
 bool Select::onMouseDown(MouseEvent& e) {
     if (e.button != 0) return false;
-    int idx = (int)(e.localPos.y / ROW_H);
+    // e.localPos is relative to Select's top-left (App uses screenRect for conversion)
+    int idx = (int)((e.localPos.y - 2) / ROW_H); // -2 for padding
     if (idx >= 0 && idx < (int)m_items.size()) { m_selected = idx; if (m_onChanged) m_onChanged(idx, m_items[idx]); }
     return true;
 }
-bool Select::onMouseMove(MouseEvent& e) {
-    m_hovered = (int)(e.localPos.y / ROW_H);
-    return true;
-}
+bool Select::onMouseMove(MouseEvent& e) { m_hovered = (int)((e.localPos.y - 2) / ROW_H); return true; }
 
 } // namespace ui

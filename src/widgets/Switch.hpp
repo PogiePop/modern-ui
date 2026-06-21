@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include "Widget.hpp"
+#include "res/Theme.hpp"
 
 namespace ui {
 
@@ -10,6 +11,7 @@ public:
     void setChecked(bool c);
     bool checked() const { return m_checked; }
     void setOnChanged(std::function<void(bool)> cb) { m_onChanged = std::move(cb); }
+    void setColorRole(ColorRole r) { m_colorRole = r; m_useColorRole = true; }
 
     const char* typeName() const override { return "Switch"; }
     Size measure(const Size&) const override { return {44, 24}; }
@@ -21,6 +23,7 @@ private:
     bool m_checked = false;
     std::function<void(bool)> m_onChanged;
     float m_animPos = 0;
+    ColorRole m_colorRole = ColorRole::Primary; bool m_useColorRole = false;
 };
 
 } // namespace ui

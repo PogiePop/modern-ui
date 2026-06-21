@@ -42,8 +42,8 @@ public:
     virtual float scrollOffsetX() const { return 0; }
     virtual float scrollOffsetY() const { return 0; }
 
-    // Layout invalidation
-    void markLayoutDirty() { m_layoutDirty = true; }
+    // COORD-FIX: propagate dirty flag up to root so entire affected tree relayouts
+    void markLayoutDirty() { m_layoutDirty = true; if (m_parent) m_parent->markLayoutDirty(); }
     bool isLayoutDirty() const { return m_layoutDirty; }
     void clearLayoutDirty() { m_layoutDirty = false; }
 

@@ -44,6 +44,11 @@ public:
     void pushClip(const Rect& rect, int fbHeight);
     void popClip(int fbHeight);
 
+    // Statistics
+    size_t flushCount() const { return m_flushCount; }
+    size_t drawCallCount() const { return m_drawCallCount; }
+    void resetStats() { m_flushCount = 0; m_drawCallCount = 0; }
+
 private:
     void createWhiteTexture();
     void setupVAO();
@@ -59,6 +64,22 @@ private:
     GLuint m_currentTexture = 0;
     glm::mat4 m_projection{1.0f};
     int m_fbHeight = 0;
+
+    // GL state cache to avoid redundant calls (EUI-NEO pattern)
+    GLuint m_boundProgram = 0;
+    GLuint m_boundVAO = 0;
+    GLuint m_boundTexture = 0;
+    bool m_scissorEnabled = false;
+    GLint m_scissorX = 0, m_scissorY = 0;
+    GLsizei m_scissorW = 0, m_scissorH = 0;
+    bool m_blendEnabled = true;
+
+    // Clip stack — saves previous scissor state for proper nesting
+    struct ClipState { GLint x, y; GLsizei w, h; bool enabled; };
+    std::vector<ClipState> m_clipStack;
+
+    size_t m_flushCount = 0;
+    size_t m_drawCallCount = 0;
 };
 
 } // namespace ui

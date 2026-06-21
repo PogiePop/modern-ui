@@ -1,6 +1,7 @@
 #include "MessageBox.hpp"
 #include "core/Painter.hpp"
 #include "core/Event.hpp"
+#include "core/App.hpp"
 #include "core/Icon.hpp"
 #include "res/Font.hpp"
 #include "widgets/Button.hpp"
@@ -53,9 +54,15 @@ void MessageBox::show(Widget* parent, float w, float h) {
         float py = (parent->bounds().height - m_h) * 0.5f;
         setBounds({px, py, m_w, m_h});
     }
+    // Register as overlay so App renders it on top
+    if (App::instance()) App::instance()->setOverlay(this);
 }
 
-void MessageBox::close() { m_open = false; m_visible = false; }
+void MessageBox::close() {
+    m_open = false; m_visible = false;
+    if (App::instance() && App::instance()->overlay() == this)
+        App::instance()->setOverlay(nullptr);
+}
 
 Rect MessageBox::screenRect() const {
     if (m_parentWidget && m_open)

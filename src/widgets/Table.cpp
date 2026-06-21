@@ -15,7 +15,7 @@ void Table::clearRows() { m_rows.clear(); }
 
 Size Table::measure(const Size& a) const {
     float w = 0; for (float cw : m_widths) w += cw;
-    return {w, HEADER_H + m_rows.size() * ROW_H};
+    return {w, m_headerH + m_rows.size() * m_rowH};
 }
 
 void Table::paint(Painter& p) {
@@ -24,22 +24,22 @@ void Table::paint(Painter& p) {
     float y = r.y;
     float x = r.x;
     // Header
-    p.drawRect({x, y, m_bounds.width, HEADER_H}, Color::fromHex(0xFF2A2A3E));
+    p.drawRect({x, y, m_bounds.width, m_headerH}, Color::fromHex(0xFF2A2A3E));
     for (size_t i = 0; i < m_headers.size() && i < m_widths.size(); ++i) {
         p.drawText({x+4, y+4, m_widths[i]-8, lh}, m_headers[i], Color{0.9f,0.9f,0.9f,1}, TextAlign::Left);
         x += m_widths[i];
     }
-    y += HEADER_H;
+    y += m_headerH;
     // Rows
     for (size_t row = 0; row < m_rows.size(); ++row) {
         x = r.x;
         Color rowBg = (row % 2 == 0) ? Color::fromHex(0xFF1E1E2E) : Color::fromHex(0xFF222233);
-        p.drawRect({x, y, m_bounds.width, ROW_H}, rowBg);
+        p.drawRect({x, y, m_bounds.width, m_rowH}, rowBg);
         for (size_t col = 0; col < m_rows[row].size() && col < m_widths.size(); ++col) {
             p.drawText({x+4, y+4, m_widths[col]-8, lh}, m_rows[row][col], Color{0.8f,0.8f,0.8f,1}, TextAlign::Left);
             x += m_widths[col];
         }
-        y += ROW_H;
+        y += m_rowH;
     }
 }
 } // namespace ui

@@ -18,6 +18,8 @@ public:
 
     size_t selectedIndex() const { return m_selectedIndex; }
     void setSelectedIndex(size_t index);
+    void clearSelection();
+    bool hasSelection() const { return m_selectedIndex < m_items.size(); }
     const std::string& selectedText() const;
 
     void setOnSelectedChanged(std::function<void(size_t, const std::string&)> cb);
@@ -47,7 +49,9 @@ private:
 
     Rect popupRect() const;
     Rect itemRect(size_t i) const;
-    float popupOffsetY() const; // negative if expanding up
+    float popupOffsetY() const;
+    float popupLocalY() const;  // popup start in screenRect-local coords
+    float headerLocalY() const; // header start in screenRect-local coords
 };
 
 } // namespace ui

@@ -2,6 +2,7 @@
 #include "core/Painter.hpp"
 #include "core/Event.hpp"
 #include "res/Font.hpp"
+#include "res/Theme.hpp"
 
 namespace ui {
 Pagination::Pagination() { m_focusable = false; rebuild(); }
@@ -23,8 +24,11 @@ void Pagination::paint(Painter& p) {
     auto drawBtn = [&](float x, const std::string& label, bool active) {
         Rect br{x, y, bw, h};
         Color bg = active ? Color{0.3f,0.5f,1,1} : Color{0.15f,0.15f,0.2f,1};
-        p.drawRoundedRect(br, bg, 4);
-        p.drawText(br, label, active ? Color{1,1,1,1} : Color{0.7f,0.7f,0.7f,1}, TextAlign::Center);
+        Color txt = active ? Color{1,1,1,1} : Color{0.7f,0.7f,0.7f,1};
+        if (m_theme) { bg = active ? m_theme->color(ColorRole::Primary) : m_theme->color(ColorRole::Surface); txt = active ? Color{1,1,1,1} : m_theme->color(ColorRole::TextSecondary); }
+        float rad = m_rounded ? h*0.5f : 4.0f;
+        p.drawRoundedRect(br, bg, rad);
+        p.drawText(br, label, txt, TextAlign::Center);
     };
     float x = r.x;
     drawBtn(x, "<", false); x += bw + gap;

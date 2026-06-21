@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>组件 — ModernUI</title>
+<style>:root{--bg:#0F0F16;--surface:#1A1A26;--border:#2E2E3E;--text:#E4E4EC;--text2:#8888A0;--primary:#4F8CF7;--radius:8px;--transition:0.4s}[data-theme="light"]{--bg:#F8FAFC;--surface:#fff;--border:#CBD5E1;--text:#0F172A;--text2:#475569;--primary:#3B82F6}*{margin:0;padding:0;box-sizing:border-box;transition:background var(--transition),color var(--transition)}body{font-family:'Segoe UI',system-ui;background:var(--bg);color:var(--text);line-height:1.7}a{color:var(--primary)}nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:56px;gap:24px;position:sticky;top:0;z-index:100}nav .logo{font-size:20px;font-weight:700;color:var(--primary)}nav .links{display:flex;gap:20px;flex:1}nav .links a{color:var(--text2);font-size:14px;font-weight:500;text-decoration:none}nav .links a:hover{color:var(--text)}nav .theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 16px;border-radius:20px;cursor:pointer;font-size:13px}.content{max-width:1100px;margin:0 auto;padding:40px 24px}h1{font-size:32px;margin-bottom:8px}h2{font-size:22px;margin:36px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}.card h3{font-size:15px;margin-bottom:4px}.card p{font-size:13px;color:var(--text2)}.card .api{font-size:12px;color:var(--primary);margin-top:6px;font-family:monospace}code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px}</style></head><body>
+<nav><div class="logo">ModernUI</div><div class="links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="tutorial.html">教程</a><a href="components.html">组件</a><a href="https://github.com/PogiePop/modern-ui">GitHub</a></div><button class="theme-btn" onclick="toggleTheme()" id="tbtn">☀ 亮色</button></nav>
+
+<div class="content">
+<h1>组件预览</h1>
+<p>ModernUI 提供 40+ 内置组件，每个组件支持多种现代化样式变体。</p>
+
+<h2>基础组件</h2><div class="grid">
+<div class="card"><h3>Button</h3><p>5 种变体 (Primary/Secondary/Danger/Success/Ghost)，3 种形状 (Default/Pill/Compact)</p><div class="api">setVariant() setPill() setCompact() setCornerRadius()</div></div>
+<div class="card"><h3>Label</h3><p>支持主题色角色、对齐、选中复制、右键菜单</p><div class="api">setColorRole() setTextAlign() setFontSize()</div></div>
+<div class="card"><h3>TextInput</h3><p>单行输入，选中/拖拽/右键菜单/撤销重做/CJK 输入</p><div class="api">setPlaceholder() setOnTextChanged() addContextMenuItem()</div></div>
+<div class="card"><h3>TextEdit</h3><p>多行编辑器，UTF-8 码点光标，换行折叠</p><div class="api">setText() setFont() selectAll() undo() redo()</div></div>
+<div class="card"><h3>Switch</h3><p>3 种尺寸 (S/M/L)，支持主题色变体</p><div class="api">setChecked() setColorRole() setMinSize()</div></div>
+<div class="card"><h3>Checkbox</h3><p>3 种尺寸，5 种主题色，圆角复选框</p><div class="api">setChecked() setBoxSize() setColorRole()</div></div>
+<div class="card"><h3>RadioButton</h3><p>RadioGroup 分组，5 种主题色，3 种尺寸</p><div class="api">setSelected() setDotSize() setColorRole()</div></div>
+<div class="card"><h3>Slider</h3><p>可自定义拇指大小、轨道高度、主题色</p><div class="api">setValue() setStep() setColorRole() setThumbSize()</div></div>
+<div class="card"><h3>ProgressBar</h3><p>5 种颜色变体，圆角填充条</p><div class="api">setValue() setColorRole()</div></div>
+<div class="card"><h3>LoadingSpinner</h3><p>8 段旋转动画，支持主题色和尺寸变化</p><div class="api">setColorRole() setSpeed() setSpinnerSize()</div></div>
+</div>
+
+<h2>容器组件</h2><div class="grid">
+<div class="card"><h3>Container</h3><p>Row/Column 布局，FlexBox 对齐，测量缓存</p><div class="api">setDirection() setPadding() setSpacing() setAlign() setChildSizing()</div></div>
+<div class="card"><h3>ScrollArea</h3><p>滚动容器，左侧滚动条，动态显示/隐藏</p><div class="api">content() scrollbarWidth() setScrollY()</div></div>
+<div class="card"><h3>TabView</h3><p>多标签页，可选内容边框，主题色 tab 栏</p><div class="api">addTab() setCurrentTab() setContentBorder()</div></div>
+<div class="card"><h3>Card</h3><p>4 种海拔高度，圆角阴影卡片</p><div class="api">setElevation() setBorderRadius()</div></div>
+<div class="card"><h3>Border</h3><p>3 种线型 (Solid/Dashed/Dotted)，主题色</p><div class="api">setStroke() setBorderStyle() setCornerRadius()</div></div>
+<div class="card"><h3>CollapsePanel</h3><p>3 种变体 (Default/Bordered/Card)，展开/折叠</p><div class="api">setExpanded() setVariant() setContent()</div></div>
+<div class="card"><h3>Form / FormField</h3><p>2 种标签位置 (Top/Left)，紧凑模式</p><div class="api">addField() setCompact()</div></div>
+</div>
+
+<h2>选择与输入</h2><div class="grid">
+<div class="card"><h3>Dropdown</h3><p>下拉选择，方向自适应 (Down/Up/Auto)，清除 X</p><div class="api">addItem() setSelectedIndex() clearSelection()</div></div>
+<div class="card"><h3>Select</h3><p>内联列表选择，鼠标悬停高亮</p><div class="api">addItem() setSelectedIndex() setOnChanged()</div></div>
+<div class="card"><h3>InputNumber</h3><p>数字输入，+/- 按钮，步进，范围限制</p><div class="api">setRange() setStep() setValue()</div></div>
+<div class="card"><h3>DatePicker</h3><p>日历选择器，月/年导航，主题色</p><div class="api">setDate() setOnDateChanged()</div></div>
+</div>
+
+<h2>数据展示</h2><div class="grid">
+<div class="card"><h3>Table</h3><p>数据表格，交替行色，可调行高/表头高</p><div class="api">setColumns() addRow() setRowHeight()</div></div>
+<div class="card"><h3>Pagination</h3><p>分页导航，圆角/方角，主题色</p><div class="api">setTotalPages() setCurrentPage() setRounded()</div></div>
+<div class="card"><h3>StatCard</h3><p>统计卡片，6 色变体 + 3 尺寸 + 趋势箭头</p><div class="api">setLabel() setValue() setTrend() setVariant()</div></div>
+<div class="card"><h3>BarChart</h3><p>柱状图，主题色，数据标签</p><div class="api">setData() setColorRole()</div></div>
+</div>
+
+<h2>弹窗与消息</h2><div class="grid">
+<div class="card"><h3>Dialog</h3><p>模态对话框，拖动标题栏，ESC 关闭</p><div class="api">setTitle() show() close() setDialogSize()</div></div>
+<div class="card"><h3>MessageBox</h3><p>消息框，自定义按钮，5 种图标类型</p><div class="api">setTitle() setMessage() setIcon() addButton()</div></div>
+<div class="card"><h3>ContextMenu</h3><p>右键菜单，内置编辑项 + 自定义项</p><div class="api">addItem() addSeparator() show()</div></div>
+<div class="card"><h3>Toast</h3><p>Toast 通知，滑入动画，图标 + 消息</p><div class="api">showToast(msg, icon, duration)</div></div>
+<div class="card"><h3>Tooltip</h3><p>5 种位置 (Top/Bottom/Left/Right/Auto)，悬停0.75s触发</p><div class="api">setTooltip(widget, text)</div></div>
+<div class="card"><h3>MessageBubble</h3><p>聊天气泡，3 种变体 (Default/Compact/Card)</p><div class="api">setSender() setText() setSide() setVariant()</div></div>
+</div>
+
+<h2>装饰与导航</h2><div class="grid">
+<div class="card"><h3>Badge</h3><p>6 色徽章：Primary/Success/Danger/Warning/Info/Default</p><div class="api">setVariant() setText()</div></div>
+<div class="card"><h3>Avatar</h3><p>头像，首字母提取，主题色</p><div class="api">setName() setSize() setColorRole()</div></div>
+<div class="card"><h3>Image</h3><p>图片显示，4 种缩放模式 + 圆角 + 阴影</p><div class="api">setTexture() setScaleMode() setImageRadius()</div></div>
+<div class="card"><h3>Link</h3><p>超链接，主题色 + 下划线样式</p><div class="api">setUrl() setColorRole() setUnderline()</div></div>
+<div class="card"><h3>NavMenu</h3><p>导航菜单，嵌套层级，图标支持</p><div class="api">setItems()  MenuItem{label, icon, action}</div></div>
+<div class="card"><h3>Spacer / Divider</h3><p>弹性空间 + 分割线 (Solid/Dashed/Dotted)</p><div class="api">Spacer(size) Divider(dir, style)</div></div>
+</div>
+
+<h2>图标系统 (45种)</h2>
+<div class="grid">
+<div class="card"><h3>导航</h3><p>ArrowUp/Down/Left/Right, ChevronUp/Down</p></div>
+<div class="card"><h3>操作</h3><p>Check, Close, Plus, Minus, CheckCircle, CloseCircle</p></div>
+<div class="card"><h3>状态</h3><p>Info, Warning, Error, Question, Success</p></div>
+<div class="card"><h3>对象</h3><p>Search, User, Settings, Home, Heart, Star, Mail, Lock</p></div>
+<div class="card"><h3>媒体</h3><p>Play, Pause, Stop, Refresh, Volume, Mute, Clock</p></div>
+<div class="card"><h3>文件</h3><p>File, Folder, Download, Upload, Image, Copy, Edit</p></div>
+<div class="card"><h3>UI</h3><p>Menu, More, External, Filter, Grid, List, Eye, EyeOff, Bell, Calendar, Tag</p></div>
+</div>
+
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:32px;text-align:center;color:var(--text2);font-size:13px;margin-top:60px">ModernUI MIT &copy; 2026 · <a href="https://github.com/PogiePop/modern-ui">GitHub</a></footer>
+<script>function toggleTheme(){var h=document.documentElement;var d=h.getAttribute('data-theme')!=='light';h.setAttribute('data-theme',d?'light':'');document.getElementById('tbtn').textContent=d?'☾ 暗色':'☀ 亮色';localStorage.setItem('theme',d?'light':'dark')}(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.setAttribute('data-theme','light');document.getElementById('tbtn').textContent='☾ 暗色'}})();</script>
+</body></html>

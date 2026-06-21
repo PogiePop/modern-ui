@@ -1,6 +1,5 @@
 #include "Widget.hpp"
-
-// Forward-declare theme for later phases
+#include "res/Theme.hpp"
 namespace ui {
 
 Widget::Widget() = default;
@@ -46,13 +45,12 @@ void Widget::setBounds(const Rect& r) {
     m_bounds = r;
 }
 
+// COORD-FIX: globalPosition = sum of all ancestor local positions minus ancestor scroll offsets
 Point Widget::globalPosition() const {
     Point p = m_bounds.topLeft();
     for (const Widget* w = m_parent; w; w = w->m_parent) {
-        p.x += w->m_bounds.x;
-        p.y += w->m_bounds.y;
-        p.x -= w->scrollOffsetX();
-        p.y -= w->scrollOffsetY();
+        p.x += w->m_bounds.x - w->scrollOffsetX();
+        p.y += w->m_bounds.y - w->scrollOffsetY();
     }
     return p;
 }
@@ -63,13 +61,13 @@ bool Widget::focused() const {
 }
 
 Theme& Widget::theme() const {
-    // Walk up to find theme; return a static dummy for now
+    // Walk up the tree to find a widget with an explicit theme
     for (const Widget* w = this; w; w = w->m_parent) {
         if (w->m_theme) return *w->m_theme;
     }
-    static Theme* fallback = nullptr;
-    // Will be resolved at runtime by Container/App
-    return *fallback;
+    // Fallback to a static default theme (dark) — always valid, never null
+    static Theme fallback;
+    return fallback;
 }
 
 void Widget::layout() {

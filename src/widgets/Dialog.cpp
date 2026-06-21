@@ -17,13 +17,12 @@ void Dialog::show(Widget* parent) {
     m_open = true;
     m_visible = true;
 
-    // Default size
+    // Default size centered on parent
     m_bounds = {100, 100, 400, 300};
     if (parent) {
         float pw = parent->bounds().width;
         float ph = parent->bounds().height;
         m_bounds = {(pw - 400) * 0.5f, (ph - 300) * 0.5f, 400, 300};
-        parent->addChild(std::unique_ptr<Widget>(this)); // temporary add
     }
 }
 

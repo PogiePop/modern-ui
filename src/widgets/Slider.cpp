@@ -1,6 +1,7 @@
 #include "Slider.hpp"
 #include "core/Painter.hpp"
 #include "core/Event.hpp"
+#include "res/Theme.hpp"
 
 #include <algorithm>
 
@@ -37,13 +38,13 @@ float Slider::normalizedValue() const {
 }
 
 float Slider::thumbCenterX() const {
-    float trackW = m_bounds.width - THUMB_SIZE;
-    return THUMB_SIZE * 0.5f + normalizedValue() * trackW;
+    float trackW = m_bounds.width - m_thumbSize;
+    return m_thumbSize * 0.5f + normalizedValue() * trackW;
 }
 
 void Slider::setValueFromPos(float x) {
-    float trackStart = THUMB_SIZE * 0.5f;
-    float trackW = m_bounds.width - THUMB_SIZE;
+    float trackStart = m_thumbSize * 0.5f;
+    float trackW = m_bounds.width - m_thumbSize;
     float t = (x - trackStart) / trackW;
     t = std::clamp(t, 0.0f, 1.0f);
     float newVal = m_min + t * (m_max - m_min);
@@ -53,43 +54,42 @@ void Slider::setValueFromPos(float x) {
 
 Size Slider::measure(const Size& available) const {
     (void)available;
-    return {200, THUMB_SIZE + 8}; // default width 200
+    return {200, m_thumbSize + 8};
 }
 
 void Slider::paint(Painter& painter) {
     float sx = screenRect().x, sy = screenRect().y;
-    float trackY = sy + (m_bounds.height - TRACK_HEIGHT) * 0.5f;
-    float thumbX = sx + thumbCenterX() - THUMB_SIZE * 0.5f;
-    float thumbY = sy + (m_bounds.height - THUMB_SIZE) * 0.5f;
+    float trackY = sy + (m_bounds.height - m_trackHeight) * 0.5f;
+    float thumbX = sx + thumbCenterX() - m_thumbSize * 0.5f;
+    float thumbY = sy + (m_bounds.height - m_thumbSize) * 0.5f;
 
-    // Track background
-    Rect trackBg{sx, trackY, m_bounds.width, TRACK_HEIGHT};
-    painter.drawRect(trackBg, Color::fromHex(0xFF444444));
+    Color trackColor = Color::fromHex(0xFF444444);
+    Color activeColor = Color::fromHex(0xFF3B82F6);
+    Color thumbColor = m_dragging ? Color::fromHex(0xFF2563EB)
+                     : (m_hovered ? Color::fromHex(0xFF3B82F6) : Color::fromHex(0xFF60A5FA));
+    Color focusColor = Color::fromHex(0xFFFFFFFF);
 
-    // Active track (width = thumb center distance from left edge)
-    Rect trackActive{sx, trackY, thumbCenterX(), TRACK_HEIGHT};
-    painter.drawRect(trackActive, Color::fromHex(0xFF3B82F6));
-
-    // Thumb
-    Rect thumbRect{thumbX, thumbY, THUMB_SIZE, THUMB_SIZE};
-    Color thumbColor = m_dragging
-        ? Color::fromHex(0xFF2563EB)
-        : (m_hovered ? Color::fromHex(0xFF3B82F6) : Color::fromHex(0xFF60A5FA));
-    painter.drawRect(thumbRect, thumbColor);
-
-    // Focus ring
-    if (m_focusRing) {
-        painter.drawRectOutline(thumbRect.insetBy(-2, -2),
-            Color::fromHex(0xFFFFFFFF), 2);
+    if (m_theme) {
+        trackColor = m_theme->color(ColorRole::BgTertiary);
+        activeColor = m_useColorRole ? m_theme->color(m_colorRole) : m_theme->color(ColorRole::Primary);
+        if (!m_dragging && !m_hovered) thumbColor = activeColor;
+        else thumbColor = m_dragging ? m_theme->color(ColorRole::PrimaryActive) : m_theme->color(ColorRole::PrimaryHover);
+        focusColor = m_theme->color(ColorRole::BorderFocused);
     }
+
+    painter.drawRoundedRect({sx, trackY, m_bounds.width, m_trackHeight}, trackColor, m_trackHeight*0.5f);
+    painter.drawRoundedRect({sx, trackY, thumbCenterX(), m_trackHeight}, activeColor, m_trackHeight*0.5f);
+    Rect thumbRect{thumbX, thumbY, m_thumbSize, m_thumbSize};
+    painter.drawRoundedRect(thumbRect, thumbColor, m_thumbSize*0.5f);
+    if (m_focusRing) painter.drawRectOutline(thumbRect.insetBy(-2, -2), focusColor, 2);
 }
 
 bool Slider::onMouseDown(MouseEvent& event) {
     if (event.button == 0) {
         // Check if click is on thumb
-        float thumbX = thumbCenterX() - THUMB_SIZE * 0.5f;
-        float thumbY = (m_bounds.height - THUMB_SIZE) * 0.5f;
-        Rect thumbRect{thumbX, thumbY, THUMB_SIZE, THUMB_SIZE};
+        float thumbX = thumbCenterX() - m_thumbSize * 0.5f;
+        float thumbY = (m_bounds.height - m_thumbSize) * 0.5f;
+        Rect thumbRect{thumbX, thumbY, m_thumbSize, m_thumbSize};
 
         if (thumbRect.contains(event.localPos)) {
             m_dragging = true;

@@ -22,12 +22,19 @@ public:
     App();
     ~App();
 
+    // Singleton access for overlay registration (context menus, dropdowns, etc.)
+    static App* instance() { return s_instance; }
+
     App(const App&) = delete;
     App& operator=(const App&) = delete;
 
     bool init(const char* title, int width, int height);
     void run();
     void shutdown();
+
+    // Multi-threaded rendering: uses thread pool for parallel layout/measure
+    void setMultiThreaded(bool enable);
+    bool multiThreaded() const { return m_multiThreaded; }
 
     Window& window();
     void* windowHandle(); // GLFWwindow* for context sharing
@@ -97,10 +104,12 @@ private:
     Widget* m_overlay = nullptr;
     Point m_lastMousePos;
     bool m_cursorBlink = true;
+    bool m_multiThreaded = false;
     int m_frameCount = 0;
     int m_tooltipTimer = 0;
     Widget* m_tooltipTarget = nullptr;
 
+    static App* s_instance;
     friend class Window;
 };
 

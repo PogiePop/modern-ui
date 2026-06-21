@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>文档 — ModernUI</title>
+<style>:root{--bg:#0F0F16;--surface:#1A1A26;--border:#2E2E3E;--text:#E4E4EC;--text2:#8888A0;--primary:#4F8CF7;--radius:8px;--transition:0.4s}[data-theme="light"]{--bg:#F8FAFC;--surface:#fff;--border:#CBD5E1;--text:#0F172A;--text2:#475569;--primary:#3B82F6}*{margin:0;padding:0;box-sizing:border-box;transition:background var(--transition),color var(--transition),border var(--transition)}body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}a{color:var(--primary)}nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:56px;gap:24px;position:sticky;top:0;z-index:100}nav .logo{font-size:20px;font-weight:700;color:var(--primary)}nav .links{display:flex;gap:20px;flex:1}nav .links a{color:var(--text2);font-size:14px;font-weight:500;text-decoration:none}nav .links a:hover{color:var(--text)}nav .theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 16px;border-radius:20px;cursor:pointer;font-size:13px}.content{max-width:900px;margin:0 auto;padding:40px 24px}h1{font-size:32px;margin-bottom:8px}h2{font-size:22px;margin:36px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}h3{font-size:17px;margin:20px 0 8px}p{margin:8px 0}code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px}pre{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow-x:auto;margin:12px 0}pre code{background:none;border:none;padding:0}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid var(--border);padding:8px 12px;text-align:left;font-size:14px}th{background:var(--surface)}</style></head>
+<body>
+<nav><div class="logo">ModernUI</div><div class="links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="tutorial.html">教程</a><a href="components.html">组件</a><a href="https://github.com/PogiePop/modern-ui">GitHub</a></div><button class="theme-btn" onclick="toggleTheme()" id="tbtn">☀ 亮色</button></nav>
+
+<div class="content">
+<h1>API 文档</h1>
+
+<h2>App — 应用程序入口</h2>
+<pre><code>ui::App app;
+app.init("窗口标题", 800, 600);   // 创建窗口 + 初始化 OpenGL
+app.setRoot(std::move(root));     // 设置根控件树
+app.run();                        // 进入主循环
+app.quit();                       // 退出</code></pre>
+
+<h2>Widget — 控件基类</h2>
+<table><tr><th>方法</th><th>说明</th></tr>
+<tr><td>setBounds(Rect)</td><td>设置位置和大小</td></tr>
+<tr><td>setVisible(bool)</td><td>控制可见性</td></tr>
+<tr><td>setTheme(Theme*)</td><td>设置主题指针</td></tr>
+<tr><td>setIcon(IconType)</td><td>设置图标</td></tr>
+<tr><td>setShadow(Point,float,Color)</td><td>设置阴影</td></tr>
+<tr><td>setOpacity(float)</td><td>设置不透明度</td></tr>
+<tr><td>fadeIn/fadeOut(float)</td><td>淡入淡出动画</td></tr>
+<tr><td>addChild/removeChild</td><td>控件树管理</td></tr></table>
+
+<h2>Container — 布局容器</h2>
+<pre><code>auto c = std::make_unique<Container>(LayoutDirection::Vertical);
+c->setPadding(EdgeInsets::all(12));
+c->setSpacing(8);
+c->setBackgroundColor(Color::fromHex(0xFF1A1A2E));
+c->addChild(std::move(child1));
+c->addChild(std::move(child2));</code></pre>
+<table><tr><th>枚举</th><th>值</th></tr><tr><td>LayoutDirection</td><td>Horizontal, Vertical</td></tr><tr><td>SizingType</td><td>Fixed, Fill, Intrinsic</td></tr><tr><td>Align</td><td>Start, Center, End, Stretch, SpaceBetween, SpaceAround, SpaceEvenly</td></tr></table>
+
+<h2>Label — 文本标签</h2>
+<pre><code>auto l = std::make_unique<Label>("Hello World");
+l->setFont(font);
+l->setFontSize(16);
+l->setColorRole(ColorRole::Text);  // 主题色（可动画）
+l->setTextAlign(TextAlign::Center);</code></pre>
+
+<h2>Button — 按钮</h2>
+<pre><code>auto b = std::make_unique<Button>("Click Me");
+b->setVariant(Button::Primary);  // Primary/Secondary/Danger/Success/Ghost
+b->setPill(true);                // 全圆角药丸形
+b->setCompact(true);             // 紧凑内边距
+b->setOnClick([](){ printf("clicked!\n"); });</code></pre>
+
+<h2>TextInput / TextEdit — 文本输入</h2>
+<pre><code>auto ti = std::make_unique<TextInput>("Placeholder...");
+ti->setFont(font);
+// 右键菜单: 剪切/复制/粘贴/删除/全选/撤销/重做
+// 快捷键: Ctrl+C/V/X/Z/Y/A
+// 拖拽选中文本</code></pre>
+
+<h2>TabView — 标签页</h2>
+<pre><code>auto tabs = std::make_unique<TabView>();
+tabs->addTab("Tab 1", std::move(content1));
+tabs->addTab("Tab 2", std::move(content2));
+tabs->setContentBorder(color, 1.0f);</code></pre>
+
+<h2>ScrollArea — 滚动区域</h2>
+<pre><code>auto scroll = std::make_unique<ScrollArea>();
+scroll->content(std::move(largeContent));
+scroll->scrollbarWidth(8);
+scroll->step(40);</code></pre>
+
+<h2>Theme — 主题系统</h2>
+<pre><code>Theme dark = Theme::defaultDark();
+Theme light = Theme::defaultLight();
+
+// 20种颜色角色
+dark.setColor(ColorRole::Primary, Color::fromHex(0xFF6366F1));
+
+// 主题切换动画
+ThemeTransition transition;
+transition.setTarget(light, 0.5f); // 0.5秒动画过渡
+transition.tick(dt);               // 每帧调用</code></pre>
+
+<h2>Config — 全局配置</h2>
+<pre><code>auto& cfg = Config::instance();
+cfg.multiThreaded = true;
+cfg.darkMode = false;
+cfg.scrollStep = 50.0f;
+cfg.loadFromFile("modernui.cfg");
+cfg.saveToFile("modernui.cfg");</code></pre>
+
+<h2>Clipboard — 剪贴板</h2>
+<pre><code>Clipboard::set("text to copy");
+std::string text = Clipboard::get();</code></pre>
+
+<h2>ThreadPool — 线程池</h2>
+<pre><code>auto& pool = ThreadPool::instance();
+auto future = pool.enqueue([](){ return heavyWork(); });
+pool.parallelFor(0, 100, [](size_t i){ process(i); });</code></pre>
+
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:32px;text-align:center;color:var(--text2);font-size:13px;margin-top:60px">ModernUI MIT &copy; 2026 · <a href="https://github.com/PogiePop/modern-ui">GitHub</a></footer>
+<script>function toggleTheme(){var h=document.documentElement;var d=h.getAttribute('data-theme')!=='light';h.setAttribute('data-theme',d?'light':'');document.getElementById('tbtn').textContent=d?'☾ 暗色':'☀ 亮色';localStorage.setItem('theme',d?'light':'dark')}(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.setAttribute('data-theme','light');document.getElementById('tbtn').textContent='☾ 暗色'}})();</script>
+</body></html>

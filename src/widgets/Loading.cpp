@@ -1,5 +1,6 @@
 #include "Loading.hpp"
 #include "core/Painter.hpp"
+#include "res/Theme.hpp"
 #include <cmath>
 
 namespace ui {
@@ -10,13 +11,16 @@ void LoadingSpinner::tickAnimation(float dt) { m_angle += m_speed * dt; }
 void LoadingSpinner::paint(Painter& p) {
     Rect r = screenRect();
     float cx = r.x + r.width*0.5f, cy = r.y + r.height*0.5f, rad = r.width*0.4f;
-    // Draw arc segments
+    Color baseColor = m_color;
+    if (m_theme && m_useRole) baseColor = m_theme->color(m_colorRole);
+    else if (m_theme && !m_custom) baseColor = m_theme->color(ColorRole::Primary);
     for (int i = 0; i < 8; ++i) {
-        float a = m_angle + i * 0.785398f; // 45 degrees each
-        float alpha = 0.2f + 0.8f * (i / 7.0f); // fade trailing
+        float a = m_angle + i * 0.785398f;
+        float alpha = 0.2f + 0.8f * (i / 7.0f);
         float sx = cx + cosf(a)*rad, sy = cy + sinf(a)*rad;
-        Color c{m_color.r, m_color.g, m_color.b, m_color.a * alpha};
-        p.drawRoundedRect({sx-3, sy-3, 6, 6}, c, 3);
+        Color c{baseColor.r, baseColor.g, baseColor.b, baseColor.a * alpha};
+        float dot = r.width * 0.06f;
+        p.drawRoundedRect({sx-dot, sy-dot, dot*2, dot*2}, c, dot);
     }
 }
 } // namespace ui

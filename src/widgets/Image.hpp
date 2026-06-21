@@ -16,6 +16,8 @@ public:
 
     enum class ScaleMode { Stretch, Fit, Fill, None };
     void setScaleMode(ScaleMode mode) { m_scaleMode = mode; }
+    void setImageRadius(float r) { m_radius = r; m_hasRadius = true; }
+    void setImageShadow(Point off, float blur, const Color& c) { m_shadowOff=off; m_shadowBlur=blur; m_shadowCol=c; m_hasShadow=true; }
 
     const char* typeName() const override { return "Image"; }
 
@@ -29,6 +31,8 @@ private:
     int m_texHeight = 0;
     ScaleMode m_scaleMode = ScaleMode::Stretch;
     Color m_tint{1, 1, 1, 1};
+    float m_radius = 0; bool m_hasRadius = false;
+    Point m_shadowOff{0,4}; float m_shadowBlur = 12; Color m_shadowCol{0,0,0,0.3f}; bool m_hasShadow = false;
 };
 
 } // namespace ui

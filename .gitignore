@@ -1,4 +1,5 @@
 build/
+.claude/
 CLAUDE.md
 *.exe
 *.pdb

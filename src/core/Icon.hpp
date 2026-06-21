@@ -7,13 +7,22 @@ class Painter;
 
 enum class IconType {
     None = 0,
-    Info, Warning, Error, Question,
-    Check, Close, Plus, Minus,
+    // Status
+    Info, Warning, Error, Question, Success,
+    // Actions
+    Check, Close, Plus, Minus, CheckCircle, CloseCircle,
+    // Navigation
     ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-    Search, User, Settings, Home,
-    Heart, Star, Mail, Lock,
-    Play, Pause, Stop,
-    File, Folder, Download, Upload,
+    ChevronUp, ChevronDown,
+    // Objects
+    Search, User, Settings, Home, Heart, Star, Mail, Lock,
+    // Media
+    Play, Pause, Stop, Refresh, Volume, Mute, Clock,
+    // Files
+    File, Folder, Download, Upload, Image, Copy, Edit,
+    // UI
+    Menu, More, External, Filter, Grid, List,
+    Eye, EyeOff, Bell, Calendar, Tag,
     _Count
 };
 

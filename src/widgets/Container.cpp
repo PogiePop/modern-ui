@@ -1,466 +1,169 @@
+// EUI-NEO: Container is pure layout — Row/Column/Stack. ScrollArea handles scrolling.
 #include "Container.hpp"
 #include "Widget.hpp"
-
 #include "core/Painter.hpp"
 #include "core/Event.hpp"
-
+#include "res/Theme.hpp"
 #include <algorithm>
+#include <cmath>
+#include <functional>
 
 namespace ui {
 
-Container::Container(LayoutDirection dir)
-    : m_direction(dir) {}
+namespace { using ChildLayoutInfo = Container::ChildLayoutInfo;
+const ChildLayoutInfo& getLayout(const std::vector<ChildLayoutInfo>& l, size_t i) {
+    if (i < l.size()) return l[i]; static ChildLayoutInfo d; return d;
+}}
 
-void Container::setDirection(LayoutDirection dir) {
-    m_direction = dir;
+Container::Container(LayoutDirection dir) : m_direction(dir) {}
+void Container::setDirection(LayoutDirection d) { m_direction = d; }
+void Container::setBackgroundColor(const Color& c) { m_bgColor = c; }
+void Container::clearBackgroundColor() { m_bgColor.reset(); }
+Color Container::backgroundColor() const { return m_bgColor.value_or(Color{0,0,0,0}); }
+void Container::setChildSizing(size_t i, Sizing h, Sizing v) {
+    if (i>=m_childLayout.size()) m_childLayout.resize(i+1); m_childLayout[i]={h,v};
 }
 
-void Container::setBackgroundColor(const Color& color) {
-    m_bgColor = color;
-}
-
-void Container::clearBackgroundColor() {
-    m_bgColor.reset();
-}
-
-Color Container::backgroundColor() const {
-    return m_bgColor.value_or(Color{0, 0, 0, 0});
-}
-
-void Container::setChildSizing(size_t index, Sizing horz, Sizing vert) {
-    if (index >= m_childLayout.size()) {
-        m_childLayout.resize(index + 1);
+Size Container::measure(const Size& a) const {
+    // Use measurement cache if available size unchanged (EUI-NEO pattern)
+    if (m_measureCacheValid && m_cachedAvailable.width == a.width && m_cachedAvailable.height == a.height) {
+        return m_cachedMeasure;
     }
-    m_childLayout[index] = {horz, vert};
-}
-
-// Helper to get child layout info (defined inside namespace for access)
-namespace {
-
-using ChildLayoutInfo = Container::ChildLayoutInfo;
-
-const ChildLayoutInfo& getLayout(const std::vector<ChildLayoutInfo>& layouts, size_t index) {
-    if (index < layouts.size()) return layouts[index];
-    static ChildLayoutInfo defaultLayout;
-    return defaultLayout;
-}
-
-} // anonymous namespace
-
-Size Container::measure(const Size& available) const {
-    float w = 0, h = 0;
-
-    if (m_children.empty()) {
-        w = m_padding.horizontal();
-        h = m_padding.vertical();
-    } else if (m_direction == LayoutDirection::Horizontal) {
-        float totalWidth = m_padding.horizontal();
-        float maxChildH = 0;
-        int visCount = 0;
-        for (size_t i = 0; i < m_children.size(); ++i) if (m_children[i]->visible()) visCount++;
-        float totalSpacing = m_spacing * (visCount > 0 ? visCount - 1 : 0);
-
-        float availPerChild = available.width - m_padding.horizontal() - totalSpacing;
-        if (availPerChild < 0) availPerChild = 0;
-        if (visCount == 0) visCount = 1;
-
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& child = m_children[i];
-            if (!child->visible()) continue;
-            Size childAvail{availPerChild / visCount, available.height - m_padding.vertical()};
-            Size childSize = child->measure(childAvail);
-            if (childSize.width < child->minWidth()) childSize.width = child->minWidth();
-            if (childSize.height < child->minHeight()) childSize.height = child->minHeight();
-            if (childSize.width > child->maxWidth()) childSize.width = child->maxWidth();
-            if (childSize.height > child->maxHeight()) childSize.height = child->maxHeight();
-            totalWidth += childSize.width;
-            if (childSize.height > maxChildH) maxChildH = childSize.height;
-        }
-        w = totalWidth + totalSpacing;
-        h = maxChildH + m_padding.vertical();
+    float w=0,h=0;
+    if (m_children.empty()) { w=m_padding.horizontal(); h=m_padding.vertical(); }
+    else if (m_direction==LayoutDirection::Horizontal) {
+        float tw=m_padding.horizontal(),mh=0; int n=0;
+        for (auto& c:m_children) if (c->visible()) n++;
+        float ts=m_spacing*(n>0?n-1:0),ac=a.width-m_padding.horizontal()-ts; if(ac<0)ac=0;if(n==0)n=1;
+        for (auto& c:m_children){if(!c->visible())continue;
+            Size s=c->measure({ac/n,a.height-m_padding.vertical()});if(s.width<c->minWidth())s.width=c->minWidth();
+            if(s.height<c->minHeight())s.height=c->minHeight();if(s.width>c->maxWidth())s.width=c->maxWidth();
+            if(s.height>c->maxHeight())s.height=c->maxHeight();tw+=s.width;if(s.height>mh)mh=s.height;}
+        w=tw+ts;h=mh+m_padding.vertical();
     } else {
-        float totalHeight = m_padding.vertical();
-        float maxChildW = 0;
-        int visCount = 0;
-        for (size_t i = 0; i < m_children.size(); ++i) if (m_children[i]->visible()) visCount++;
-        float totalSpacing = m_spacing * (visCount > 0 ? visCount - 1 : 0);
-
-        float availPerChild = available.height - m_padding.vertical() - totalSpacing;
-        if (availPerChild < 0) availPerChild = 0;
-        if (visCount == 0) visCount = 1;
-
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& child = m_children[i];
-            if (!child->visible()) continue;
-            Size childAvail{available.width - m_padding.horizontal(), availPerChild / visCount};
-            Size childSize = child->measure(childAvail);
-            if (childSize.width < child->minWidth()) childSize.width = child->minWidth();
-            if (childSize.height < child->minHeight()) childSize.height = child->minHeight();
-            if (childSize.width > child->maxWidth()) childSize.width = child->maxWidth();
-            if (childSize.height > child->maxHeight()) childSize.height = child->maxHeight();
-            if (childSize.width > maxChildW) maxChildW = childSize.width;
-            totalHeight += childSize.height;
-        }
-        w = maxChildW + m_padding.horizontal();
-        h = totalHeight + totalSpacing;
+        float th=m_padding.vertical(),mw=0; int n=0;
+        for (auto& c:m_children) if (c->visible()) n++;
+        float ts=m_spacing*(n>0?n-1:0),ac=a.height-m_padding.vertical()-ts; if(ac<0)ac=0;if(n==0)n=1;
+        for (auto& c:m_children){if(!c->visible())continue;
+            Size s=c->measure({a.width-m_padding.horizontal(),ac/n});if(s.width<c->minWidth())s.width=c->minWidth();
+            if(s.height<c->minHeight())s.height=c->minHeight();if(s.width>c->maxWidth())s.width=c->maxWidth();
+            if(s.height>c->maxHeight())s.height=c->maxHeight();if(s.width>mw)mw=s.width;th+=s.height;}
+        w=mw+m_padding.horizontal();h=th+ts;
     }
-
-    // Clamp to min/max
-    if (w < m_minWidth) w = m_minWidth;
-    if (h < m_minHeight) h = m_minHeight;
-    if (w > m_maxWidth) w = m_maxWidth;
-    if (h > m_maxHeight) h = m_maxHeight;
-
-    return {w, h};
+    if(w<m_minWidth)w=m_minWidth;if(h<m_minHeight)h=m_minHeight;
+    if(w>m_maxWidth)w=m_maxWidth;if(h>m_maxHeight)h=m_maxHeight;
+    // Cache the result
+    m_cachedAvailable = a;
+    m_cachedMeasure = {w, h};
+    m_measureCacheValid = true;
+    return {w,h};
 }
 
 void Container::layout() {
+    if (m_responsive&&m_bounds.width>0){float s=std::clamp(m_bounds.width/1280.0f,0.5f,1.5f);
+        m_padding={m_basePadding.top*s,m_basePadding.right*s,m_basePadding.bottom*s,m_basePadding.left*s};m_spacing=m_baseSpacing*s;}
+
+    float cx=m_padding.left,cy=m_padding.top;
+    float cw=m_bounds.width-m_padding.horizontal(),ch=m_bounds.height-m_padding.vertical();
+    if(cw<0)cw=0;if(ch<0)ch=0;
     if (m_children.empty()) return;
 
-    // Responsive: scale padding/spacing by width ratio (base: 1280px)
-    if (m_responsive && m_bounds.width > 0) {
-        float scale = std::clamp(m_bounds.width / 1280.0f, 0.5f, 1.5f);
-        m_padding = {m_basePadding.top*scale, m_basePadding.right*scale, m_basePadding.bottom*scale, m_basePadding.left*scale};
-        m_spacing = m_baseSpacing * scale;
-    }
+    // Pre-measure all visible children to avoid redundant measure() calls
+    struct ChildMeasure { float primary=0; float cross=0; };
+    std::vector<ChildMeasure> measures(m_children.size());
 
-    float contentX = m_padding.left;
-    float contentY = m_padding.top;
-    float contentW = m_bounds.width - m_padding.horizontal();
-    float contentH = m_bounds.height - m_padding.vertical();
-    if (contentW < 0) contentW = 0;
-    if (contentH < 0) contentH = 0;
-
-    if (m_direction == LayoutDirection::Horizontal) {
-        // First pass: measure intrinsic children
-        float totalSpacing = m_spacing * (m_children.size() - 1);
-        float usedWidth = totalSpacing;
-        float totalFlex = 0;
-        std::vector<float> childWidths(m_children.size(), 0);
-
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& layout = getLayout(m_childLayout, i);
-            if (layout.horz.type == SizingType::Fixed) {
-                childWidths[i] = layout.horz.value;
-                usedWidth += childWidths[i];
-            } else if (layout.horz.type == SizingType::Intrinsic) {
-                Size avail{contentW, contentH};
-                childWidths[i] = m_children[i]->measure(avail).width;
-                usedWidth += childWidths[i];
-            } else if (layout.horz.type == SizingType::Fill) {
-                totalFlex += layout.horz.value;
-            }
-        }
-
-        float remaining = contentW - usedWidth;
-        if (remaining < 0) remaining = 0;
-
-        // Apply alignment
-        float extraGap = 0, edgeGap = 0;
-        if (totalFlex == 0 && m_children.size() > 1) {
-            switch (m_align) {
-            case Align::SpaceBetween: extraGap = remaining / (m_children.size()-1); remaining = 0; break;
-            case Align::SpaceAround:  extraGap = remaining / m_children.size(); edgeGap = extraGap * 0.5f; remaining = 0; break;
-            case Align::SpaceEvenly:  extraGap = remaining / (m_children.size()+1); edgeGap = extraGap; remaining = 0; break;
-            case Align::Center: edgeGap = remaining * 0.5f; remaining = 0; break;
-            case Align::End:    edgeGap = remaining; remaining = 0; break;
-            default: break;
-            }
-        }
-
-        float x = contentX + edgeGap;
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& layout = getLayout(m_childLayout, i);
-            float childW = childWidths[i];
-
-            if (layout.horz.type == SizingType::Fill) {
-                childW = totalFlex > 0 ? (remaining * layout.horz.value / totalFlex) : 0;
-            }
-
-            // Cross-axis sizing
-            float childH = contentH;
-            if (layout.vert.type == SizingType::Fixed) {
-                childH = layout.vert.value;
-            } else if (layout.vert.type == SizingType::Intrinsic) {
-                Size avail{childW, contentH};
-                childH = m_children[i]->measure(avail).height;
-                if (childH > contentH) childH = contentH;
-            }
-            // Fill for cross-axis already set to contentH
-
-            // Clamp to child's min/max
-            if (childW < m_children[i]->minWidth()) childW = m_children[i]->minWidth();
-            if (childH < m_children[i]->minHeight()) childH = m_children[i]->minHeight();
-            if (childW > m_children[i]->maxWidth()) childW = m_children[i]->maxWidth();
-            if (childH > m_children[i]->maxHeight()) childH = m_children[i]->maxHeight();
-
-            m_children[i]->setBounds({x, contentY, childW, childH});
-            x += childW + m_spacing + extraGap;
-        }
+    if (m_direction==LayoutDirection::Horizontal) {
+        float ts=m_spacing*(m_children.size()-1),uw=ts,tf=0;std::vector<float>ws(m_children.size(),0);
+        for(size_t i=0;i<m_children.size();++i){auto&c=m_children[i];if(!c->visible())continue;
+            auto&lo=getLayout(m_childLayout,i);
+            if(lo.horz.type==SizingType::Fixed){ws[i]=lo.horz.value;uw+=ws[i];}
+            else if(lo.horz.type==SizingType::Intrinsic){
+                Size ms=c->measure({cw,ch});
+                measures[i]={ms.width,ms.height};
+                ws[i]=ms.width;uw+=ws[i];}
+            else if(lo.horz.type==SizingType::Fill)tf+=lo.horz.value;}
+        float rem=cw-uw;if(rem<0)rem=0;float eg=0,xg=0;
+        if(tf==0&&m_children.size()>1){switch(m_align){
+            case Align::SpaceBetween:xg=rem/(m_children.size()-1);rem=0;break;
+            case Align::SpaceAround:xg=rem/m_children.size();eg=xg*0.5f;rem=0;break;
+            case Align::SpaceEvenly:xg=rem/(m_children.size()+1);eg=xg;rem=0;break;
+            case Align::Center:eg=rem*0.5f;rem=0;break;case Align::End:eg=rem;rem=0;break;default:break;}}
+        float x=cx+eg;
+        for(size_t i=0;i<m_children.size();++i){auto&c=m_children[i];if(!c->visible())continue;
+            auto&lo=getLayout(m_childLayout,i);float cw2=ws[i];
+            if(lo.horz.type==SizingType::Fill)cw2=tf>0?rem*lo.horz.value/tf:0;
+            float ch2=ch;
+            if(lo.vert.type==SizingType::Fixed)ch2=lo.vert.value;
+            else if(lo.vert.type==SizingType::Intrinsic){
+                // Use cached cross measurement if available, otherwise measure
+                if(measures[i].cross>0)ch2=std::min(measures[i].cross,ch);
+                else ch2=std::min(c->measure({cw2,ch}).height,ch);}
+            if(cw2<c->minWidth())cw2=c->minWidth();if(ch2<c->minHeight())ch2=c->minHeight();
+            if(cw2>c->maxWidth())cw2=c->maxWidth();if(ch2>c->maxHeight())ch2=c->maxHeight();
+            c->setBounds({x,cy,cw2,ch2});x+=cw2+m_spacing+xg;}
     } else {
-        // Vertical
-        float totalSpacing = m_spacing * (m_children.size() - 1);
-        float usedHeight = totalSpacing;
-        float totalFlex = 0;
-        std::vector<float> childHeights(m_children.size(), 0);
-
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& layout = getLayout(m_childLayout, i);
-            if (layout.vert.type == SizingType::Fixed) {
-                childHeights[i] = layout.vert.value;
-                usedHeight += childHeights[i];
-            } else if (layout.vert.type == SizingType::Intrinsic) {
-                Size avail{contentW, contentH};
-                childHeights[i] = m_children[i]->measure(avail).height;
-                usedHeight += childHeights[i];
-            } else if (layout.vert.type == SizingType::Fill) {
-                totalFlex += layout.vert.value;
-            }
-        }
-
-        float remaining = contentH - usedHeight;
-        if (remaining < 0) remaining = 0;
-
-        // Apply alignment
-        float extraGap = 0, edgeGap = 0;
-        if (totalFlex == 0 && m_children.size() > 1) {
-            switch (m_align) {
-            case Align::SpaceBetween: extraGap = remaining / (m_children.size()-1); remaining = 0; break;
-            case Align::SpaceAround:  extraGap = remaining / m_children.size(); edgeGap = extraGap * 0.5f; remaining = 0; break;
-            case Align::SpaceEvenly:  extraGap = remaining / (m_children.size()+1); edgeGap = extraGap; remaining = 0; break;
-            case Align::Center: edgeGap = remaining * 0.5f; remaining = 0; break;
-            case Align::End:    edgeGap = remaining; remaining = 0; break;
-            default: break;
-            }
-        }
-
-        float y = contentY + edgeGap;
-        for (size_t i = 0; i < m_children.size(); ++i) {
-            auto& layout = getLayout(m_childLayout, i);
-            float childH = childHeights[i];
-
-            if (layout.vert.type == SizingType::Fill) {
-                childH = totalFlex > 0 ? (remaining * layout.vert.value / totalFlex) : 0;
-            }
-
-            // Cross-axis sizing: stretch to content width by default
-            float childW = contentW;
-            if (layout.horz.type == SizingType::Fixed) {
-                childW = layout.horz.value;
-            } else if (layout.horz.type == SizingType::Intrinsic) {
-                Size avail{contentW, childH};
-                childW = m_children[i]->measure(avail).width;
-                if (childW > contentW) childW = contentW;
-            }
-
-            // Clamp to child's min/max
-            if (childW < m_children[i]->minWidth()) childW = m_children[i]->minWidth();
-            if (childH < m_children[i]->minHeight()) childH = m_children[i]->minHeight();
-            if (childW > m_children[i]->maxWidth()) childW = m_children[i]->maxWidth();
-            if (childH > m_children[i]->maxHeight()) childH = m_children[i]->maxHeight();
-
-            m_children[i]->setBounds({contentX, y, childW, childH});
-            y += childH + m_spacing + extraGap;
-        }
+        float ts=m_spacing*(m_children.size()-1),uh=ts,tf=0;std::vector<float>hs(m_children.size(),0);
+        for(size_t i=0;i<m_children.size();++i){auto&c=m_children[i];if(!c->visible())continue;
+            auto&lo=getLayout(m_childLayout,i);
+            if(lo.vert.type==SizingType::Fixed){hs[i]=lo.vert.value;uh+=hs[i];}
+            else if(lo.vert.type==SizingType::Intrinsic){
+                Size ms=c->measure({cw,ch});
+                measures[i]={ms.width,ms.height};
+                hs[i]=ms.height;uh+=hs[i];}
+            else if(lo.vert.type==SizingType::Fill)tf+=lo.vert.value;}
+        float rem=ch-uh;if(rem<0)rem=0;float eg=0,xg=0;
+        if(tf==0&&m_children.size()>1){switch(m_align){
+            case Align::SpaceBetween:xg=rem/(m_children.size()-1);rem=0;break;
+            case Align::SpaceAround:xg=rem/m_children.size();eg=xg*0.5f;rem=0;break;
+            case Align::SpaceEvenly:xg=rem/(m_children.size()+1);eg=xg;rem=0;break;
+            case Align::Center:eg=rem*0.5f;rem=0;break;case Align::End:eg=rem;rem=0;break;default:break;}}
+        float y=cy+eg;
+        for(size_t i=0;i<m_children.size();++i){auto&c=m_children[i];if(!c->visible())continue;
+            auto&lo=getLayout(m_childLayout,i);float ch2=hs[i];
+            if(lo.vert.type==SizingType::Fill)ch2=tf>0?rem*lo.vert.value/tf:0;
+            float cw2=cw;
+            if(lo.horz.type==SizingType::Fixed)cw2=lo.horz.value;
+            else if(lo.horz.type==SizingType::Intrinsic){
+                // Use cached cross measurement if available, otherwise measure
+                if(measures[i].primary>0)cw2=std::min(measures[i].primary,cw);
+                else cw2=std::min(c->measure({cw,ch2}).width,cw);}
+            if(cw2<c->minWidth())cw2=c->minWidth();if(ch2<c->minHeight())ch2=c->minHeight();
+            if(cw2>c->maxWidth())cw2=c->maxWidth();if(ch2>c->maxHeight())ch2=c->maxHeight();
+            c->setBounds({cx,y,cw2,ch2});y+=ch2+m_spacing+xg;}
     }
-
-    // Recursively layout children
-    for (auto& child : m_children) {
-        child->layout();
-    }
-
-    // Track content size and auto-detect overflow
-    m_contentSize = measure({m_bounds.width, m_bounds.height});
-    if (m_autoScroll) {
-        m_scrollable = (m_contentSize.height > m_bounds.height + 2 || m_contentSize.width > m_bounds.width + 2);
-    }
+    for (auto& c:m_children) c->layout();
 }
 
 void Container::paint(Painter& painter) {
     Rect r = screenRect();
-
-    // Paint background
+    // Use explicit bg color if set, otherwise try theme
     if (m_bgColor.has_value()) {
         painter.drawRect(r, *m_bgColor);
+    } else if (m_theme) {
+        painter.drawRect(r, m_theme->color(ColorRole::Bg));
     }
 
-    // Compute max z-index in each subtree
-    std::function<int(Widget*)> maxZ = [&](Widget* w) -> int {
-        int mz = w->zIndex();
-        for (size_t i = 0; i < w->childCount(); ++i) mz = std::max(mz, maxZ(w->childAt(i)));
-        return mz;
-    };
-
-    // Build sorted order: subtree max z-index; higher = later (on top)
-    std::vector<size_t> order(m_children.size());
-    for (size_t i = 0; i < order.size(); ++i) order[i] = i;
-    std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
-        int za = maxZ(m_children[a].get()), zb = maxZ(m_children[b].get());
-        if (za != zb) return za < zb;
-        return a < b;
-    });
-
-    // Paint children
-    if (m_scrollable) {
-        Rect viewport{r.x, r.y, m_bounds.width, m_bounds.height};
-        painter.pushClip(viewport);
-        for (size_t idx : order) {
-            auto& child = m_children[idx];
-            if (!child->visible()) continue;
-            Rect orig = child->bounds();
-            child->setPosition(orig.x - m_scrollX, orig.y - m_scrollY);
-            child->paint(painter);
-            child->setPosition(orig.x, orig.y);
-        }
-        painter.popClip();
-    } else {
-        for (size_t idx : order) {
-            auto& child = m_children[idx];
-            if (!child->visible()) continue;
-            float saveX = child->bounds().x, saveY = child->bounds().y;
-            float ox = child->slideOffsetX(), oy = child->slideOffsetY();
-            if (ox != 0 || oy != 0) child->setPosition(saveX + ox, saveY + oy);
-            if (child->hasShadow() && child->opacity() > 0.01f) {
-                Rect sr = child->screenRect();
-                Color sc = child->shadowColor(); sc.a *= child->opacity();
-                painter.drawShadow(sr, 4, sc, child->shadowOffset(), child->shadowRadius());
-            }
-            Rect cs = child->screenRect();
-            cs.x -= 1; cs.y -= 1; cs.width += 2; cs.height += 2;
-            painter.pushClip(cs);
-            child->paint(painter);
-            painter.popClip();
-            child->setPosition(saveX, saveY);
-        }
+    for (auto& child : m_children) {
+        if (!child->visible()) continue;
+        float ox=child->slideOffsetX(),oy=child->slideOffsetY();
+        if(ox!=0||oy!=0) child->setPosition(child->bounds().x+ox, child->bounds().y+oy);
+        if(child->hasShadow()&&child->opacity()>0.01f){Rect sr=child->screenRect();
+            Color sc=child->shadowColor();sc.a*=child->opacity();painter.drawShadow(sr,4,sc,child->shadowOffset(),child->shadowRadius());}
+        Rect cs=child->screenRect();cs.x-=1;cs.y-=1;cs.width+=2;cs.height+=2;
+        painter.pushClip(cs);child->paint(painter);painter.popClip();
+        if(ox!=0||oy!=0) child->setPosition(child->bounds().x, child->bounds().y);
     }
-
-    // Auto scrollbar rendering (browser-style)
-    if (scrollable()) {
-        float sbW = 8, pad = 2, margin = 2;
-        bool hasV = maxScrollY() > 0, hasH = maxScrollX() > 0;
-        if (hasV && hasH) { sbW += 2; } // corner overlap
-        float corner = hasV && hasH ? sbW + pad : 0;
-
-        if (hasV) {
-            float sbH = m_bounds.height - pad*2 - (hasH ? sbW + pad : 0);
-            float thumbH = std::max(24.0f, sbH * (m_bounds.height / m_contentSize.height));
-            float thumbY = r.y + pad + (sbH - thumbH) * (m_scrollY / std::max(maxScrollY(), 1.0f));
-            float sx = r.x + m_bounds.width - sbW - margin;
-            painter.drawRoundedRect({sx, r.y+pad, sbW, sbH}, Color{0,0,0,0.08f}, 4);
-            Color tc = m_scrollBarDragging ? Color{0.5f,0.5f,0.55f,0.9f} : Color{0.35f,0.35f,0.4f,0.7f};
-            painter.drawRoundedRect({sx, thumbY, sbW, thumbH}, tc, 4);
-        }
-        if (hasH) {
-            float sbBW = m_bounds.width - pad*2 - (hasV ? sbW + pad : 0);
-            float thumbW = std::max(24.0f, sbBW * (m_bounds.width / m_contentSize.width));
-            float thumbX = r.x + pad + (sbBW - thumbW) * (m_scrollX / std::max(maxScrollX(), 1.0f));
-            float sy = r.y + m_bounds.height - sbW - margin;
-            painter.drawRoundedRect({r.x+pad, sy, sbBW, sbW}, Color{0,0,0,0.08f}, 4);
-            painter.drawRoundedRect({thumbX, sy, thumbW, sbW}, Color{0.35f,0.35f,0.4f,0.7f}, 4);
-        }
-        // Corner
-        if (hasV && hasH) {
-            float cx = r.x + m_bounds.width - sbW - margin;
-            float cy = r.y + m_bounds.height - sbW - margin;
-            painter.drawRect({cx, cy, sbW, sbW}, Color{0,0,0,0.05f});
-        }
-    }
-}
-
-bool Container::hasOverflow() const {
-    return m_contentSize.width > m_bounds.width || m_contentSize.height > m_bounds.height;
-}
-
-bool Container::onMouseDown(MouseEvent& e) {
-    if (e.button != 0) return false;
-    if (scrollable()) {
-        float sbW = 8, pad = 2, margin = 2;
-        float msY = maxScrollY(), msX = maxScrollX();
-        bool hasH = msX > 0;
-        if (msY > 0) {
-            float sbH = m_bounds.height - pad*2 - (hasH ? sbW + pad : 0);
-            float thumbH = std::max(24.0f, sbH * (m_bounds.height / m_contentSize.height));
-            float thumbY = pad + (sbH - thumbH) * (m_scrollY / std::max(msY, 1.0f));
-            Rect thumb{m_bounds.width - sbW - margin, thumbY, sbW, thumbH};
-            if (thumb.contains(e.localPos)) {
-                m_scrollBarDragging = true;
-                Point g = globalPosition();
-                m_sbDragScreenY = g.y + e.localPos.y;
-                m_sbDragVal = m_scrollY;
-                m_sbTrackScreenY = g.y + pad;
-                m_sbTrackLen = sbH;
-                m_sbThumbLen = thumbH;
-                m_sbMaxScroll = msY; return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool Container::onMouseUp(MouseEvent&) { m_scrollBarDragging = false; return false; }
-
-bool Container::onMouseMove(MouseEvent& e) {
-    if (!m_scrollBarDragging) return false;
-    Point g = globalPosition();
-    float curScreenY = g.y + e.localPos.y;
-    float dy = curScreenY - m_sbDragScreenY;
-    float range = m_sbTrackLen - m_sbThumbLen;
-    if (range > 0) m_scrollY = std::clamp(m_sbDragVal + dy * m_sbMaxScroll / range, 0.0f, m_sbMaxScroll);
-    return true;
-}
-
-float Container::maxScrollX() const {
-    return std::max(0.0f, m_contentSize.width - m_bounds.width);
-}
-
-float Container::maxScrollY() const {
-    return std::max(0.0f, m_contentSize.height - m_bounds.height);
 }
 
 Widget* Container::hitTest(Point localPoint) {
     if (!m_visible) return nullptr;
-    // Only reject clicks outside our width; height may be exceeded by popup children
-    if (localPoint.x < 0 || localPoint.y < 0 || localPoint.x >= m_bounds.width) {
-        return nullptr;
-    }
-    // If scrollable, adjust for scroll offset
-    if (m_scrollable) {
-        localPoint.x += m_scrollX;
-        localPoint.y += m_scrollY;
-    }
-    // Compute subtree max z-index
-    std::function<int(Widget*)> maxZ = [&](Widget* w) -> int {
-        int mz = w->zIndex();
-        for (size_t i = 0; i < w->childCount(); ++i) mz = std::max(mz, maxZ(w->childAt(i)));
-        return mz;
-    };
-    // Check children: higher subtree max-z first, same: reverse tree order
-    std::vector<size_t> hitOrder(m_children.size());
-    for (size_t i = 0; i < hitOrder.size(); ++i) hitOrder[i] = i;
-    std::stable_sort(hitOrder.begin(), hitOrder.end(), [&](size_t a, size_t b) {
-        int za = maxZ(m_children[a].get()), zb = maxZ(m_children[b].get());
-        if (za != zb) return za > zb; // higher subtree max-z = checked first
-        return a > b;
-    });
-    for (size_t idx : hitOrder) {
-        Point childLocal = localPoint;
-        childLocal.x -= m_children[idx]->bounds().x;
-        childLocal.y -= m_children[idx]->bounds().y;
-        Widget* hit = m_children[idx]->hitTest(childLocal);
-        if (hit) return hit;
-    }
+    if (localPoint.x<0||localPoint.y<0||localPoint.x>=m_bounds.width||localPoint.y>=m_bounds.height) return nullptr;
+    for (auto it=m_children.rbegin();it!=m_children.rend();++it){
+        if(!(*it)->visible())continue;Point cl=localPoint;
+        cl.x-=(*it)->bounds().x;cl.y-=(*it)->bounds().y;Widget*h=(*it)->hitTest(cl);if(h)return h;}
     return this;
 }
 
-bool Container::onScrollWheel(float, float dy) {
-    if (m_scrollable) {
-        m_scrollY -= dy * 20.0f; // scroll speed
-        if (m_scrollY < 0) m_scrollY = 0;
-        float maxY = maxScrollY();
-        if (m_scrollY > maxY) m_scrollY = maxY;
-        return true;
-    }
-    return false;
-}
+bool Container::onScrollWheel(float,float) { return false; }
 
 } // namespace ui

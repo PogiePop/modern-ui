@@ -2,6 +2,7 @@
 #include "Avatar.hpp"
 #include "core/Painter.hpp"
 #include "res/Font.hpp"
+#include "res/Theme.hpp"
 #include "widgets/Container.hpp"
 #include <cmath>
 
@@ -48,7 +49,18 @@ void MessageBubble::paint(Painter& painter) {
     float bubbleY = r.y + nameH;
 
     Color bubbleBg = (m_side == Left) ? Color::fromHex(0xFF2A2A3E) : Color::fromHex(0xFF3B5FEF);
-    painter.drawRoundedRect({bubbleX, bubbleY, bubbleW, bubbleH}, bubbleBg, 8);
+    if (m_theme && m_side == Right) {
+        ColorRole cr = m_useColorRole ? m_colorRole : ColorRole::Primary;
+        bubbleBg = m_theme->color(cr);
+    } else if (m_theme && m_side == Left) {
+        bubbleBg = m_theme->color(ColorRole::Surface);
+    }
+    float rad = (m_variant == Compact) ? 4.0f : ((m_variant == Card) ? 12.0f : 8.0f);
+    painter.drawRoundedRect({bubbleX, bubbleY, bubbleW, bubbleH}, bubbleBg, rad);
+    if (m_variant == Card) {
+        Color borderCol = m_theme ? m_theme->color(ColorRole::Border) : Color{0.3f,0.3f,0.3f,1};
+        painter.drawRectOutline({bubbleX, bubbleY, bubbleW, bubbleH}, borderCol, 1);
+    }
 
     // Draw wrapped text lines
     std::string remaining = m_text;

@@ -1,159 +1,291 @@
 #include "Icon.hpp"
 #include "Painter.hpp"
+#include <cmath>
 
 namespace ui {
 
 void drawIcon(Painter& p, IconType icon, float x, float y, float size, const Color& color) {
-    if (icon == IconType::None) return;
-    float cx = x + size * 0.5f, cy = y + size * 0.5f;
-    float r = size * 0.45f;
-    float thick = size * 0.08f; if (thick < 1.5f) thick = 1.5f;
+    if (icon == IconType::None || size < 8) return;
+    float cx = x + size * 0.5f;
+    float cy = y + size * 0.5f;
+    float s = size * 0.12f;
+    if (s < 1.2f) s = 1.2f;
 
-    auto rect = [&](float rx, float ry, float rw, float rh) { p.drawRect({rx, ry, rw, rh}, color); };
-    auto circ = [&](float crx, float cry, float crr) { // approximate circle with rect for now
-        p.drawRoundedRect({crx-crr, cry-crr, crr*2, crr*2}, color, crr);
-    };
+    auto hr = [&](float rx, float ry, float rw, float rh) { p.drawRect({rx, ry, rw, rh}, color); };
+    auto rr = [&](float rx, float ry, float rw, float rh, float rad) { p.drawRoundedRect({rx, ry, rw, rh}, color, rad); };
+    auto circle = [&](float ccx, float ccy, float r) { p.drawRoundedRect({ccx - r, ccy - r, r * 2, r * 2}, color, r); };
 
     switch (icon) {
-    case IconType::Info:
-        circ(cx, cy, r); circ(cx, cy, r-thick); // ring
-        rect(cx-thick*0.5f, cy-r*0.55f, thick, r*0.55f); // i body
-        rect(cx-thick*0.5f, cy+r*0.15f, thick, thick*1.5f); // dot
-        break;
-    case IconType::Warning: {
-        float h = r*1.5f, w = r*1.7f;
-        p.drawRect({cx-w*0.5f, cy-h*0.4f, w, thick}, color); p.drawRect({cx-w*0.5f, cy-h*0.4f, thick, h}, color);
-        p.drawRect({cx+w*0.5f-thick, cy-h*0.4f, thick, h}, color); p.drawRect({cx-w*0.5f, cy+h*0.4f-thick, w, thick}, color);
-        rect(cx-thick*0.5f, cy-thick*2, thick, r*0.6f); // ! body
-        rect(cx-thick*0.5f, cy+r*0.15f, thick, thick*1.5f); // ! dot
-        break;
-    }
-    case IconType::Error:
-        circ(cx, cy, r); rect(cx-r*0.65f, cy-thick*0.5f, r*1.3f, thick); // X line 1
-        rect(cx-thick*0.5f, cy-r*0.65f, thick, r*1.3f); // X line 2 (cross)
-        break;
-    case IconType::Question:
-        circ(cx, cy, r); circ(cx, cy, r-thick);
-        rect(cx-r*0.3f, cy-r*0.3f, thick, r*0.3f); rect(cx, cy-r*0.3f, r*0.3f, thick);
-        rect(cx+r*0.15f, cy-r*0.3f, thick, r*0.5f); rect(cx-r*0.3f, cy+thick, r*0.6f, thick);
-        rect(cx-thick*0.5f, cy+r*0.15f, thick, thick*1.5f); // dot
-        break;
-    case IconType::Check:
-        rect(cx-r*0.25f, cy-thick*0.5f, r*0.5f, thick); // upper segment
-        rect(cx-thick*0.3f, cy, r*0.25f, thick); // lower segment
-        rect(cx-r*0.22f, cy-thick*0.5f, thick, r*0.7f); // vertical connector
-        break;
-    case IconType::Close:
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick);
-        rect(cx-thick*0.5f, cy-r*0.6f, thick, r*1.2f);
-        break;
-    case IconType::Plus:
-        rect(cx-thick*0.5f, cy-r*0.6f, thick, r*1.2f); // vertical
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick); // horizontal
-        break;
-    case IconType::Minus:
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick);
-        break;
     case IconType::ArrowUp:
-        rect(cx-thick*0.5f, cy-r*0.6f, thick, r*1.2f); // stem
-        rect(cx-r*0.5f, cy-r*0.3f, r, thick); // head top
-        rect(cx-r*0.3f, cy-r*0.1f, r*0.6f, thick); // head mid
+        hr(cx - s * 0.3f, cy - s * 0.2f, s * 0.6f, s * 2);
+        hr(cx - s * 1.2f, cy - s * 0.8f, s * 2.4f, s);
+        hr(cx - s * 0.8f, cy + s * 0.2f, s * 1.6f, s);
         break;
     case IconType::ArrowDown:
-        rect(cx-thick*0.5f, cy-r*0.6f, thick, r*1.2f);
-        rect(cx-r*0.5f, cy+r*0.3f-thick, r, thick);
-        rect(cx-r*0.3f, cy+r*0.1f-thick, r*0.6f, thick);
+        hr(cx - s * 0.3f, cy - s * 1.8f, s * 0.6f, s * 2);
+        hr(cx - s * 1.2f, cy + s * 0.8f - s, s * 2.4f, s);
+        hr(cx - s * 0.8f, cy - s * 0.2f - s, s * 1.6f, s);
         break;
     case IconType::ArrowLeft:
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick);
-        rect(cx-r*0.3f, cy-r*0.5f, thick, r);
-        rect(cx-r*0.1f, cy-r*0.3f, thick, r*0.6f);
+        hr(cx - s * 1.8f, cy - s * 0.3f, s * 2, s * 0.6f);
+        hr(cx - s * 0.8f, cy - s * 1.2f, s, s * 2.4f);
+        hr(cx + s * 0.2f, cy - s * 0.8f, s, s * 1.6f);
         break;
     case IconType::ArrowRight:
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick);
-        rect(cx+r*0.3f-thick, cy-r*0.5f, thick, r);
-        rect(cx+r*0.1f-thick, cy-r*0.3f, thick, r*0.6f);
+        hr(cx - s * 0.2f, cy - s * 0.3f, s * 2, s * 0.6f);
+        hr(cx + s * 0.8f - s, cy - s * 1.2f, s, s * 2.4f);
+        hr(cx - s * 0.2f - s, cy - s * 0.8f, s, s * 1.6f);
+        break;
+    case IconType::ChevronUp:
+        hr(cx - s * 1.2f, cy + s * 0.5f, s * 2.4f, s);
+        hr(cx - s * 0.7f, cy - s * 0.3f, s * 1.4f, s);
+        hr(cx - s * 0.3f, cy - s * 1.2f, s * 0.6f, s);
+        break;
+    case IconType::ChevronDown:
+        hr(cx - s * 1.2f, cy - s * 0.5f - s, s * 2.4f, s);
+        hr(cx - s * 0.7f, cy + s * 0.3f - s, s * 1.4f, s);
+        hr(cx - s * 0.3f, cy + s * 1.2f - s, s * 0.6f, s);
+        break;
+    case IconType::Check:
+        hr(cx - s * 1.2f, cy - s * 0.2f, s * 0.8f, s * 0.7f);
+        hr(cx - s * 0.4f, cy + s * 0.3f, s * 1.6f, s * 0.7f);
+        break;
+    case IconType::Close:
+        hr(cx - s * 1.5f, cy - s * 0.3f, s * 3, s * 0.6f);
+        hr(cx - s * 0.3f, cy - s * 1.5f, s * 0.6f, s * 3);
+        break;
+    case IconType::Plus:
+        hr(cx - s * 0.3f, cy - s * 1.8f, s * 0.6f, s * 3.6f);
+        hr(cx - s * 1.8f, cy - s * 0.3f, s * 3.6f, s * 0.6f);
+        break;
+    case IconType::Minus:
+        hr(cx - s * 1.8f, cy - s * 0.3f, s * 3.6f, s * 0.6f);
+        break;
+    case IconType::Info:
+        circle(cx, cy, s * 2.5f);
+        circle(cx, cy, s * 1.8f);
+        hr(cx - s * 0.2f, cy - s * 1.2f, s * 0.4f, s * 1.8f);
+        hr(cx - s * 0.2f, cy + s * 0.8f, s * 0.4f, s * 0.6f);
+        break;
+    case IconType::Warning:
+        hr(cx - s * 1.8f, cy + s * 1, s * 3.6f, s);
+        hr(cx - s * 1.5f, cy + s * 0.2f, s * 3, s);
+        hr(cx - s * 1, cy - s * 0.5f, s * 2, s);
+        hr(cx - s * 0.4f, cy - s * 1.5f, s * 0.8f, s);
+        hr(cx - s * 0.2f, cy - s * 0.2f, s * 0.4f, s * 1.5f);
+        hr(cx - s * 0.2f, cy + s * 1.3f, s * 0.4f, s * 0.6f);
+        break;
+    case IconType::Error:
+        circle(cx, cy, s * 2.5f);
+        hr(cx - s * 1.5f, cy - s * 0.3f, s * 3, s * 0.6f);
+        hr(cx - s * 0.3f, cy - s * 1.5f, s * 0.6f, s * 3);
+        break;
+    case IconType::Question:
+        circle(cx, cy, s * 2.5f);
+        circle(cx, cy, s * 1.8f);
+        hr(cx - s * 1, cy - s * 1, s * 0.6f, s * 0.5f);
+        hr(cx + s * 0.4f - s * 0.3f, cy - s * 1, s * 0.6f, s * 1.2f);
+        hr(cx - s * 0.8f, cy - s * 0.2f, s * 1.6f, s * 0.5f);
+        hr(cx - s * 0.2f, cy + s * 0.8f, s * 0.4f, s * 0.6f);
         break;
     case IconType::Search:
-        circ(cx-r*0.1f, cy-r*0.1f, r*0.7f); circ(cx-r*0.1f, cy-r*0.1f, r*0.7f-thick);
-        rect(cx+r*0.25f, cy+r*0.25f, r*0.4f, thick); // handle
+        circle(cx - s * 0.6f, cy - s * 0.6f, s * 2);
+        circle(cx - s * 0.6f, cy - s * 0.6f, s * 1.3f);
+        hr(cx + s * 0.8f, cy + s * 0.8f, s * 1.2f, s * 0.5f);
         break;
     case IconType::User:
-        circ(cx, cy-r*0.25f, r*0.35f); // head
-        circ(cx, cy-r*0.25f, r*0.35f-thick);
-        rect(cx-r*0.7f, cy+r*0.1f, r*1.4f, r*0.55f); // body - simplified
+        circle(cx, cy - s * 1, s * 1.8f);
+        circle(cx, cy - s * 1, s * 1.1f);
+        rr(cx - s * 2.5f, cy + s * 0.5f, s * 5, s * 3.5f, s * 3.5f * 0.5f);
         break;
     case IconType::Settings:
-        circ(cx, cy, r*0.35f); circ(cx, cy, r*0.35f-thick); // center
-        for (int i = 0; i < 8; ++i) { // gear teeth
-            float a = i * 0.785398f;
-            float tx = cx + cosf(a)*r*0.6f, ty = cy + sinf(a)*r*0.6f;
-            rect(tx-thick, ty-thick, thick*2, thick*2);
+        circle(cx, cy, s * 1.5f);
+        circle(cx, cy, s * 1.5f - s * 0.5f);
+        for (int i = 0; i < 6; ++i) {
+            float a = i * 1.0472f;
+            float tx = cx + cosf(a) * s * 2.5f;
+            float ty = cy + sinf(a) * s * 2.5f;
+            circle(tx, ty, s * 0.8f);
         }
         break;
     case IconType::Home:
-        rect(cx-r*0.7f, cy+thick, r*1.4f, r*0.4f); // base
-        rect(cx-thick*0.5f, cy-r*0.5f, thick, r*0.5f+thick); // chimney
-        rect(cx-r*0.65f, cy-r*0.3f, r*1.3f, thick); // roof
-        rect(cx-r*0.45f, cy-r*0.5f, r*0.9f, thick); // roof top
+        hr(cx - s * 2.5f, cy + s * 0.5f, s * 5, s * 3);
+        hr(cx - s * 1.8f, cy - s * 1, s * 3.6f, s);
+        hr(cx - s * 1.2f, cy - s * 1.8f, s * 2.4f, s);
+        hr(cx - s * 0.8f, cy + s * 1.5f, s * 1.6f, s * 2);
         break;
     case IconType::Heart:
-        rect(cx-r*0.55f, cy-r*0.2f, r*1.1f, r*0.7f); // simplified heart
-        rect(cx-r*0.3f, cy-r*0.5f, r*0.6f, r*0.3f); // left bump
-        rect(cx-thick*0.5f, cy-r*0.3f, r*0.55f, thick); // middle
+        circle(cx - s * 2, cy - s * 1.2f, s * 1.8f);
+        circle(cx + s * 2, cy - s * 1.2f, s * 1.8f);
+        hr(cx - s * 2.8f, cy - s * 0.2f, s * 5.6f, s * 3.5f);
+        hr(cx - s * 0.2f, cy - s * 0.2f, s * 0.4f, s * 3.2f);
         break;
     case IconType::Star:
-        rect(cx-thick*0.5f, cy-r*0.6f, thick, r*1.2f); // vertical
-        rect(cx-r*0.6f, cy-thick*0.5f, r*1.2f, thick); // horizontal
-        rect(cx-r*0.4f, cy-r*0.4f, r*0.8f, thick); // diagonal 1
-        rect(cx-r*0.4f, cy+r*0.4f-thick, r*0.8f, thick); // diagonal 2
+        hr(cx - s * 0.3f, cy - s * 2.5f, s * 0.6f, s * 5);
+        hr(cx - s * 2.5f, cy - s * 0.3f, s * 5, s * 0.6f);
+        hr(cx - s * 1.5f, cy - s * 1.5f, s * 3, s * 0.5f);
+        hr(cx - s * 1.5f, cy + s * 1, s * 3, s * 0.5f);
         break;
     case IconType::Mail:
-        rect(cx-r*0.65f, cy-r*0.35f, r*1.3f, r*0.7f); // envelope
-        rect(cx-r*0.05f, cy-r*0.35f, thick, r*0.35f); // V left
-        rect(cx-r*0.05f, cy-r*0.35f, r*0.5f, thick); // V right
+        hr(cx - s * 2.5f, cy - s * 1.5f, s * 5, s * 3);
+        hr(cx - s * 2, cy - s * 1.5f, s * 0.5f, s * 2);
+        hr(cx + s * 1.5f, cy - s * 1.5f, s * 0.5f, s * 2);
+        hr(cx - s * 2, cy, s * 4, s * 0.5f);
+        hr(cx, cy, s * 0.5f, s * 1.5f);
         break;
     case IconType::Lock:
-        rect(cx-r*0.5f, cy, r, r*0.4f); // body
-        rect(cx-r*0.3f, cy-r*0.35f, r*0.6f, r*0.4f); // shackle
-        rect(cx-thick*0.5f, cy-r*0.05f, thick, r*0.1f); // keyhole
+        rr(cx - s * 2, cy - s * 0.5f, s * 4, s * 3.5f, s * 0.8f);
+        rr(cx - s * 1.5f, cy - s * 2.5f, s * 3, s * 2.5f, s * 2);
+        hr(cx - s * 0.3f, cy, s * 0.6f, s * 1.5f);
+        circle(cx, cy + s * 0.2f, s * 0.8f);
         break;
     case IconType::Play:
-        rect(cx-r*0.3f, cy-r*0.5f, r*0.8f, thick); // top
-        rect(cx-r*0.3f, cy+r*0.5f-thick, r*0.8f, thick); // bottom
-        rect(cx+r*0.3f-thick, cy-r*0.5f, thick, r); // right edge
-        rect(cx-r*0.3f, cy-r*0.5f, thick, r); // left edge
+        hr(cx - s * 1.2f, cy - s * 2, s * 0.5f, s * 4);
+        hr(cx + s * 1.2f - s * 0.5f, cy - s * 2, s * 0.5f, s * 4);
+        hr(cx - s * 1.2f, cy - s * 2, s * 2.5f, s * 0.5f);
+        hr(cx - s * 1.2f, cy + s * 1.5f, s * 2.5f, s * 0.5f);
         break;
     case IconType::Pause:
-        rect(cx-r*0.4f, cy-r*0.5f, r*0.3f, r); // left bar
-        rect(cx+r*0.1f, cy-r*0.5f, r*0.3f, r); // right bar
+        hr(cx - s * 1.8f, cy - s * 2, s * 1.2f, s * 4);
+        hr(cx + s * 0.6f, cy - s * 2, s * 1.2f, s * 4);
         break;
     case IconType::Stop:
-        rect(cx-r*0.55f, cy-r*0.55f, r*1.1f, r*1.1f);
+        rr(cx - s * 2.2f, cy - s * 2.2f, s * 4.4f, s * 4.4f, s * 0.6f);
+        break;
+    case IconType::Refresh:
+        circle(cx, cy, s * 2.5f);
+        circle(cx, cy, s * 1.8f);
+        hr(cx + s * 1.5f, cy - s * 2, s * 0.5f, s * 2);
+        hr(cx - s * 0.5f, cy - s * 2.5f, s * 2, s * 0.5f);
         break;
     case IconType::File:
-        rect(cx-r*0.5f, cy-r*0.55f, r*0.85f, r*1.1f); // body
-        rect(cx-r*0.5f, cy-r*0.55f, r*0.85f, thick); // top edge
-        rect(cx+r*0.1f, cy-r*0.2f, r*0.5f, thick); // fold
-        rect(cx+r*0.2f, cy-r*0.1f, r*0.4f, thick);
+        hr(cx - s * 2, cy - s * 2.5f, s * 3.5f, s * 5);
+        hr(cx + s * 0.5f, cy - s * 2.5f, s * 1, s * 1.5f);
+        hr(cx - s * 2, cy - s * 1, s * 2.5f, s * 0.4f);
+        hr(cx - s * 2, cy + s * 0.2f, s * 1.8f, s * 0.4f);
+        hr(cx - s * 2, cy + s * 1.4f, s * 2.2f, s * 0.4f);
         break;
     case IconType::Folder:
-        rect(cx-r*0.65f, cy-thick*2, r*1.3f, r*0.75f); // body
-        rect(cx-r*0.65f, cy-r*0.3f, r*0.5f, r*0.35f); // tab
+        hr(cx - s * 2.5f, cy - s * 0.5f, s * 5, s * 3.5f);
+        rr(cx - s * 2.5f, cy - s * 2, s * 2.5f, s * 1.8f, s * 0.8f);
         break;
     case IconType::Download:
-        rect(cx-thick*0.5f, cy-r*0.5f, thick, r*0.8f); // stem
-        rect(cx-r*0.4f, cy+r*0.15f, r*0.8f, thick); // arrow head
-        rect(cx-r*0.25f, cy, r*0.5f, thick);
-        rect(cx-r*0.55f, cy+r*0.4f, r*1.1f, thick); // base
+        hr(cx - s * 0.3f, cy - s * 2.5f, s * 0.6f, s * 3.5f);
+        hr(cx - s * 1.8f, cy + s * 1, s * 3.6f, s * 0.5f);
+        hr(cx - s * 1.2f, cy + s * 0.3f, s * 2.4f, s * 0.5f);
+        hr(cx - s * 2.5f, cy + s * 2, s * 5, s * 0.5f);
         break;
     case IconType::Upload:
-        rect(cx-thick*0.5f, cy-r*0.5f, thick, r*0.8f);
-        rect(cx-r*0.4f, cy-r*0.35f, r*0.8f, thick);
-        rect(cx-r*0.25f, cy-r*0.2f, r*0.5f, thick);
-        rect(cx-r*0.55f, cy+r*0.4f, r*1.1f, thick);
+        hr(cx - s * 0.3f, cy - s * 2.5f, s * 0.6f, s * 3.5f);
+        hr(cx - s * 1.8f, cy - s * 1.5f, s * 3.6f, s * 0.5f);
+        hr(cx - s * 1.2f, cy - s * 1, s * 2.4f, s * 0.5f);
+        hr(cx - s * 2.5f, cy + s * 2, s * 5, s * 0.5f);
         break;
-    default: break;
+    case IconType::Image:
+        hr(cx - s * 2.5f, cy - s * 2, s * 5, s * 4);
+        circle(cx - s * 1, cy - s * 0.5f, s * 1.5f);
+        hr(cx - s * 2, cy + s * 0.5f, s * 4, s * 1.5f);
+        break;
+    case IconType::Filter:
+        hr(cx - s * 2.5f, cy - s * 0.3f, s * 5, s * 0.6f);
+        hr(cx - s * 1.5f, cy + s * 0.5f, s * 3, s * 0.6f);
+        hr(cx - s * 0.8f, cy + s * 1.5f, s * 1.6f, s * 0.6f);
+        break;
+    case IconType::Grid:
+        for (int r = 0; r < 2; ++r)
+            for (int c = 0; c < 2; ++c)
+                rr(cx - s * 1.5f + c * s * 1.6f, cy - s * 1.5f + r * s * 1.6f, s * 1.4f, s * 1.4f, s * 0.3f);
+        break;
+    case IconType::List:
+        for (int i = 0; i < 3; ++i) {
+            hr(cx - s * 2.5f, cy - s * 1 + i * s * 1.5f, s * 5, s * 0.5f);
+            circle(cx - s * 2, cy - s * 0.8f + i * s * 1.5f, s * 0.5f);
+        }
+        break;
+    case IconType::Copy:
+        hr(cx - s * 0.5f, cy - s * 2, s * 3, s * 3.5f);
+        hr(cx - s * 2, cy - s * 0.5f, s * 3, s * 3.5f);
+        break;
+    case IconType::Edit:
+        hr(cx - s * 1.5f, cy + s * 1, s * 4, s * 0.5f);
+        hr(cx - s * 0.2f, cy - s * 2, s * 0.5f, s * 3.5f);
+        break;
+    case IconType::Volume:
+        hr(cx - s * 1.5f, cy - s * 1, s * 1.5f, s * 2);
+        hr(cx - s * 0.5f, cy - s * 1.5f, s * 0.5f, s * 3);
+        hr(cx + s * 0.5f, cy - s * 0.3f, s * 1, s * 0.6f);
+        hr(cx + s * 1.2f, cy - s * 0.8f, s * 0.6f, s * 1.6f);
+        break;
+    case IconType::Mute:
+        hr(cx - s * 1.5f, cy - s * 1, s * 1.5f, s * 2);
+        hr(cx - s * 0.5f, cy - s * 1.5f, s * 0.5f, s * 3);
+        hr(cx + s * 0.8f, cy - s * 1.2f, s * 0.5f, s * 2.4f);
+        hr(cx + s * 0.2f, cy - s * 1.2f, s * 1.5f, s * 0.5f);
+        break;
+    case IconType::Clock:
+        circle(cx, cy, s * 2.8f);
+        circle(cx, cy, s * 2.2f);
+        hr(cx - s * 0.15f, cy - s * 2, s * 0.3f, s * 1.5f);
+        hr(cx - s * 0.15f, cy - s * 1.5f, s * 0.3f, s * 2.5f);
+        break;
+    case IconType::Calendar:
+        hr(cx - s * 2, cy - s * 2, s * 4, s * 1.2f);
+        hr(cx - s * 2, cy - s * 0.5f, s * 4, s * 3);
+        hr(cx - s * 1.2f, cy - s * 2.5f, s * 0.5f, s * 2);
+        hr(cx + s * 0.8f, cy - s * 2.5f, s * 0.5f, s * 2);
+        break;
+    case IconType::CheckCircle:
+        circle(cx, cy, s * 2.8f);
+        circle(cx, cy, s * 2.2f);
+        hr(cx - s * 1.2f, cy - s * 0.2f, s * 0.8f, s * 0.6f);
+        hr(cx - s * 0.3f, cy + s * 0.2f, s * 1.5f, s * 0.6f);
+        break;
+    case IconType::CloseCircle:
+        circle(cx, cy, s * 2.8f);
+        circle(cx, cy, s * 2.2f);
+        hr(cx - s * 1.2f, cy - s * 0.2f, s * 2.4f, s * 0.4f);
+        hr(cx - s * 0.2f, cy - s * 1.2f, s * 0.4f, s * 2.4f);
+        break;
+    case IconType::Menu:
+        for (int i = 0; i < 3; ++i)
+            hr(cx - s * 2, cy - s * 1.2f + i * s * 1.2f, s * 4, s * 0.45f);
+        break;
+    case IconType::More:
+        for (int i = 0; i < 3; ++i)
+            circle(cx, cy - s * 1.5f + i * s * 1.5f, s * 0.6f);
+        break;
+    case IconType::External:
+        hr(cx - s * 1.5f, cy - s * 1, s * 2.5f, s * 2);
+        hr(cx - s * 1.2f, cy - s * 1.5f, s * 0.4f, s * 2);
+        hr(cx - s * 1.5f, cy - s * 2, s * 1.5f, s * 0.4f);
+        break;
+    case IconType::Eye:
+        circle(cx, cy, s * 2);
+        circle(cx, cy, s * 1.2f);
+        circle(cx, cy, s * 0.7f);
+        break;
+    case IconType::EyeOff:
+        circle(cx, cy, s * 2);
+        hr(cx - s * 1.8f, cy - s * 0.15f, s * 3.6f, s * 0.3f);
+        break;
+    case IconType::Bell:
+        rr(cx - s * 1.5f, cy - s * 1.5f, s * 3, s * 3.5f, s * 2);
+        hr(cx - s * 0.3f, cy + s * 2, s * 0.6f, s * 0.8f);
+        circle(cx, cy - s * 1.8f, s * 0.8f);
+        break;
+    case IconType::Tag:
+        hr(cx - s * 1, cy - s * 1.5f, s * 3, s * 3);
+        circle(cx - s * 0.5f, cy, s * 0.8f);
+        hr(cx + s * 1.5f, cy - s * 1.2f, s * 1, s * 2.4f);
+        break;
+    case IconType::Success:
+        circle(cx, cy, s * 2.8f);
+        hr(cx - s * 1.2f, cy - s * 0.2f, s * 0.8f, s * 0.6f);
+        hr(cx - s * 0.3f, cy + s * 0.2f, s * 1.5f, s * 0.6f);
+        break;
+    default:
+        circle(cx, cy, s);
+        break;
     }
 }
 

@@ -15,6 +15,8 @@ public:
     void setMessage(const std::string& msg) { m_message = msg; }
     void setFont(class Font* f) { m_font = f; }
     void setIcon(IconType icon) { m_icon = icon; }
+    void setVariant(IconType icon) { m_icon = icon; } // same as setIcon, for API consistency
+    void setDialogSize(float w, float h) { m_w = w; m_h = h; }
     void addButton(const std::string& label, std::function<void()> onClick);
     void clearButtons();
 

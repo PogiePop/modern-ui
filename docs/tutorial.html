@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>教程 — ModernUI</title>
+<style>:root{--bg:#0F0F16;--surface:#1A1A26;--border:#2E2E3E;--text:#E4E4EC;--text2:#8888A0;--primary:#4F8CF7;--accent:#A78BFA;--success:#34D399;--radius:8px;--transition:0.4s}[data-theme="light"]{--bg:#F8FAFC;--surface:#fff;--border:#CBD5E1;--text:#0F172A;--text2:#475569;--primary:#3B82F6;--accent:#8B5CF6;--success:#10B981}*{margin:0;padding:0;box-sizing:border-box;transition:background var(--transition),color var(--transition)}body{font-family:'Segoe UI',system-ui;background:var(--bg);color:var(--text);line-height:1.7}a{color:var(--primary)}nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;height:56px;gap:24px;position:sticky;top:0;z-index:100}nav .logo{font-size:20px;font-weight:700;color:var(--primary)}nav .links{display:flex;gap:20px;flex:1}nav .links a{color:var(--text2);font-size:14px;font-weight:500;text-decoration:none}nav .links a:hover{color:var(--text)}nav .theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 16px;border-radius:20px;cursor:pointer;font-size:13px}.content{max-width:900px;margin:0 auto;padding:40px 24px}h1{font-size:32px;margin-bottom:8px}h2{font-size:22px;margin:36px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}h3{font-size:17px;margin:20px 0 8px}.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px 0}.step h3{color:var(--primary);margin-top:0}code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px}pre{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow-x:auto;margin:12px 0}pre code{background:none;border:none;padding:0}</style></head><body>
+<nav><div class="logo">ModernUI</div><div class="links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="tutorial.html">教程</a><a href="components.html">组件</a><a href="https://github.com/PogiePop/modern-ui">GitHub</a></div><button class="theme-btn" onclick="toggleTheme()" id="tbtn">☀ 亮色</button></nav>
+
+<div class="content">
+<h1>全流程实现教程</h1>
+<p>从零开始构建一个完整的 ModernUI 应用程序。</p>
+
+<div class="step"><h3>第1步：创建项目</h3>
+<pre><code># 克隆仓库
+git clone https://github.com/PogiePop/modern-ui.git
+cd modern-ui
+mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A x64</code></pre></div>
+
+<div class="step"><h3>第2步：编写最小程序</h3>
+<pre><code>// main.cpp
+#include "core/App.hpp"
+#include "widgets/Container.hpp"
+#include "widgets/Label.hpp"
+
+int main() {
+    ui::App app;
+    app.init("My App", 800, 600);
+
+    auto label = std::make_unique&lt;ui::Label&gt;("Hello ModernUI!");
+    label->setFont(app.getFont());
+    label->setFontSize(24);
+
+    auto root = std::make_unique&lt;ui::Container&gt;();
+    root->addChild(std::move(label));
+    app.setRoot(std::move(root));
+    app.run();
+}</code></pre></div>
+
+<div class="step"><h3>第3步：添加按钮和布局</h3>
+<pre><code>auto root = std::make_unique&lt;Container&gt;(LayoutDirection::Vertical);
+root->setPadding(EdgeInsets::all(20));
+root->setSpacing(12);
+
+auto title = std::make_unique&lt;Label&gt;("Welcome");
+title->setFontSize(28); title->setColorRole(ColorRole::Primary);
+root->addChild(std::move(title));
+
+auto btn = std::make_unique&lt;Button&gt;("Click Me");
+btn->setVariant(Button::Primary); btn->setCornerRadius(8);
+btn->setOnClick([](){ printf("Clicked!\n"); });
+root->addChild(std::move(btn));</code></pre></div>
+
+<div class="step"><h3>第4步：添加主题切换</h3>
+<pre><code>Theme dark = Theme::defaultDark();
+Theme light = Theme::defaultLight();
+ThemeTransition transition;
+transition.setImmediate(dark);
+
+auto themeSwitch = std::make_unique&lt;Switch&gt;();
+themeSwitch->setChecked(true);
+themeSwitch->setOnChanged([&](bool d) {
+    transition.setTarget(d ? dark : light, 0.5f);
+});
+
+// 每帧驱动动画
+struct ThemeDriver : Widget {
+    void tickAnimation(float dt) override { transition.tick(dt); }
+    Size measure(const Size&) const override { return {0,0}; }
+    void paint(Painter&) override {}
+};
+root->addChild(std::make_unique&lt;ThemeDriver&gt;());</code></pre></div>
+
+<div class="step"><h3>第5步：构建并运行</h3>
+<pre><code>cmake --build . --config Release
+./Release/exp.exe</code></pre></div>
+
+<div class="step"><h3>第6步：发布</h3>
+<pre><code># 安装发布文件
+cmake --install . --prefix ./install --config Release
+
+# 目录结构:
+# install/include/modernui/  -- 头文件
+# install/lib/               -- 静态库 + DLL 导入库
+# install/bin/               -- DLL</code></pre></div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:32px;text-align:center;color:var(--text2);font-size:13px;margin-top:60px">ModernUI MIT &copy; 2026 · <a href="https://github.com/PogiePop/modern-ui">GitHub</a></footer>
+<script>function toggleTheme(){var h=document.documentElement;var d=h.getAttribute('data-theme')!=='light';h.setAttribute('data-theme',d?'light':'');document.getElementById('tbtn').textContent=d?'☾ 暗色':'☀ 亮色';localStorage.setItem('theme',d?'light':'dark')}(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.setAttribute('data-theme','light');document.getElementById('tbtn').textContent='☾ 暗色'}})();</script>
+</body></html>

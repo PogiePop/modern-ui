@@ -7,102 +7,85 @@ namespace ui {
 
 ScrollBar::ScrollBar(Direction dir) : m_dir(dir) { m_focusable = false; }
 
+// VIEWPORT-MODEL: setRange without side effects
 void ScrollBar::setRange(float total, float viewport) {
     m_total = total > 0 ? total : 1;
     m_viewport = std::clamp(viewport, 0.0f, m_total);
     if (m_value > maxValue()) m_value = maxValue();
 }
 
+// VIEWPORT-MODEL: setValue clamps and fires callback only on change
 void ScrollBar::setValue(float val) {
-    m_value = std::clamp(val, 0.0f, maxValue());
-    if (m_onValueChanged) m_onValueChanged(m_value);
+    float clamped = std::clamp(val, 0.0f, maxValue());
+    if (clamped != m_value) { m_value = clamped; if (m_onValueChanged) m_onValueChanged(m_value); }
 }
 
 float ScrollBar::maxValue() const { return std::max(0.0f, m_total - m_viewport); }
+void ScrollBar::setOnValueChanged(std::function<void(float)> cb) { m_onValueChanged = std::move(cb); }
 
-void ScrollBar::setOnValueChanged(std::function<void(float)> cb) {
-    m_onValueChanged = std::move(cb);
-}
-
-float ScrollBar::trackLength() const {
-    return m_dir == Vertical ? m_bounds.height : m_bounds.width;
-}
+// VIEWPORT-MODEL: track geometry based purely on own bounds
+float ScrollBar::trackLength() const { return m_dir == Vertical ? m_bounds.height : m_bounds.width; }
 
 float ScrollBar::thumbSize() const {
-    float ratio = m_viewport / m_total;
-    return std::max(MIN_THUMB, trackLength() * ratio);
+    if (m_total <= 0 || m_viewport >= m_total) return trackLength();
+    return std::max(MIN_THUMB, trackLength() * (m_viewport / m_total));
 }
 
-Rect ScrollBar::trackRect() const {
-    if (m_dir == Vertical) return {0, 0, m_bounds.width, m_bounds.height};
-    return {0, 0, m_bounds.width, m_bounds.height};
-}
-
+// VIEWPORT-MODEL: thumb position in local coords, no external offsets
 Rect ScrollBar::thumbRect() const {
-    float tLen = trackLength();
-    float tSize = thumbSize();
-    float range = maxValue();
+    float tLen = trackLength(), tSize = thumbSize(), range = maxValue();
     float frac = range > 0 ? m_value / range : 0;
     float offset = (tLen - tSize) * frac;
-
     if (m_dir == Vertical) return {1, offset, m_bounds.width - 2, tSize};
     return {offset, 1, tSize, m_bounds.height - 2};
 }
 
-float ScrollBar::valueFromPos(float pos) const {
-    float tLen = trackLength();
-    float tSize = thumbSize();
-    float range = maxValue();
+// VIEWPORT-MODEL: local pos → scroll value
+float ScrollBar::valueFromPos(float localPos) const {
+    float tLen = trackLength(), tSize = thumbSize(), range = maxValue();
     if (tLen <= tSize) return 0;
-    float frac = (pos - tSize * 0.5f) / (tLen - tSize);
-    return std::clamp(frac * range, 0.0f, range);
+    return std::clamp((localPos - tSize*0.5f) / (tLen - tSize) * range, 0.0f, range);
 }
 
-Size ScrollBar::measure(const Size&) const {
-    if (m_dir == Vertical) return {12, 100};
-    return {100, 12};
-}
+Size ScrollBar::measure(const Size&) const { return m_dir == Vertical ? Size{10,100} : Size{100,10}; }
 
+// VIEWPORT-MODEL: paint uses screenRect (fixed viewport position, no container scroll)
+// Element-Plus style: thin, rounded, semi-transparent, visible on hover
 void ScrollBar::paint(Painter& painter) {
     float sx = screenRect().x, sy = screenRect().y;
-    Rect tr = trackRect();
-    painter.drawRect({sx + tr.x, sy + tr.y, tr.width, tr.height}, Color::fromHex(0xFF222222));
-
-    // Thumb
-    Rect thumb = thumbRect();
-    Rect st{sx + thumb.x, sy + thumb.y, thumb.width, thumb.height};
-    Color thumbCol = m_dragging ? Color::fromHex(0xFF3B82F6) : Color::fromHex(0xFF555555);
-    painter.drawRect(st, thumbCol);
+    // Track — transparent (no track drawn in Element-Plus style)
+    // Thumb — rounded pill, semi-transparent
+    Rect t = thumbRect();
+    Rect st{sx + t.x + 1, sy + t.y + 1, t.width - 2, t.height - 2};
+    Color tc = m_dragging ? Color{0.4f, 0.4f, 0.45f, 0.9f} : Color{0.35f, 0.35f, 0.4f, 0.45f};
+    float rad = st.width < st.height ? st.width * 0.5f : st.height * 0.5f;
+    painter.drawRoundedRect(st, tc, rad);
 }
 
+// VIEWPORT-MODEL: e.localPos is already in local coords (App uses screenRect for conversion)
 bool ScrollBar::onMouseDown(MouseEvent& e) {
     if (e.button != 0) return false;
     Rect thumb = thumbRect();
     if (thumb.contains(e.localPos)) {
-        m_dragging = true;
-        m_dragStartVal = m_value;
+        m_dragging = true; m_dragStartVal = m_value;
         m_dragStartPos = (m_dir == Vertical) ? e.localPos.y : e.localPos.x;
         return true;
     }
-    // Jump to position
-    setValue(valueFromPos((m_dir == Vertical) ? e.localPos.y : e.localPos.x));
-    m_dragging = true;
-    m_dragStartVal = m_value;
-    m_dragStartPos = (m_dir == Vertical) ? e.localPos.y : e.localPos.x;
+    // Click on track: jump to position
+    float pos = (m_dir == Vertical) ? e.localPos.y : e.localPos.x;
+    setValue(valueFromPos(pos));
+    m_dragging = true; m_dragStartVal = m_value; m_dragStartPos = pos;
     return true;
 }
 
+// VIEWPORT-MODEL: drag delta in local space → value change → callback → Container updates
 bool ScrollBar::onMouseMove(MouseEvent& e) {
     if (!m_dragging) return false;
     float cur = (m_dir == Vertical) ? e.localPos.y : e.localPos.x;
     float delta = cur - m_dragStartPos;
-    float tLen = trackLength();
-    float tSize = thumbSize();
-    float range = maxValue();
-    if (tLen > tSize && range > 0) {
-        float valDelta = delta * range / (tLen - tSize);
-        setValue(m_dragStartVal + valDelta);
-    }
+    float tLen = trackLength(), tSize = thumbSize(), range = maxValue();
+    if (tLen > tSize && range > 0)
+        setValue(m_dragStartVal + delta * range / (tLen - tSize));
     return true;
 }
 

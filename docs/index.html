@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModernUI — C++20 GPU GUI Toolkit</title>
+<style>
+:root {
+    --bg: #0F0F16; --surface: #1A1A26; --border: #2E2E3E;
+    --text: #E4E4EC; --text2: #8888A0; --primary: #4F8CF7; --accent: #A78BFA;
+    --success: #34D399; --danger: #F87171; --warning: #FBBF24;
+    --radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --transition: 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="light"] {
+    --bg: #F8FAFC; --surface: #FFFFFF; --border: #CBD5E1;
+    --text: #0F172A; --text2: #475569; --primary: #3B82F6; --accent: #8B5CF6;
+    --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
+    --shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; transition: background var(--transition), color var(--transition), border var(--transition), box-shadow var(--transition); }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 24px; position: sticky; top: 0; z-index: 100; }
+nav .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+nav .links { display: flex; gap: 20px; flex: 1; }
+nav .links a { color: var(--text2); font-size: 14px; font-weight: 500; }
+nav .links a:hover { color: var(--text); text-decoration: none; }
+nav .theme-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+nav .theme-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.hero { text-align: center; padding: 80px 24px 60px; }
+.hero h1 { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 18px; color: var(--text2); max-width: 600px; margin: 16px auto 32px; }
+.hero .btns { display: flex; gap: 12px; justify-content: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { filter: brightness(1.1); text-decoration: none; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
+
+.section { max-width: 1100px; margin: 0 auto; padding: 60px 24px; }
+.section h2 { font-size: 28px; margin-bottom: 8px; }
+.section .subtitle { color: var(--text2); margin-bottom: 32px; }
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.card h3 { font-size: 16px; margin-bottom: 6px; }
+.card p { font-size: 13px; color: var(--text2); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+.tag-pri { background: var(--primary); color: #fff; }
+.tag-suc { background: var(--success); color: #fff; }
+.tag-war { background: var(--warning); color: #000; }
+.tag-dan { background: var(--danger); color: #fff; }
+
+code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 13px; }
+pre { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+pre code { background: none; border: none; padding: 0; }
+
+footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; color: var(--text2); font-size: 13px; margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">ModernUI</div>
+    <div class="links">
+        <a href="index.html">首页</a>
+        <a href="docs.html">文档</a>
+        <a href="tutorial.html">教程</a>
+        <a href="components.html">组件</a>
+        <a href="https://github.com/PogiePop/modern-ui">GitHub</a>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀ 亮色</button>
+</nav>
+
+<section class="hero">
+    <h1>ModernUI</h1>
+    <p>C++20 现代 GPU 加速 GUI 工具包。40+ 组件，主题切换动画，CJK 动态字体，右键菜单，全部现代化内置样式。</p>
+    <div class="btns">
+        <a href="tutorial.html" class="btn btn-primary">快速开始</a>
+        <a href="components.html" class="btn btn-outline">组件预览</a>
+        <a href="https://github.com/PogiePop/modern-ui" class="btn btn-outline">GitHub</a>
+    </div>
+</section>
+
+<section class="section">
+    <h2>特性</h2>
+    <p class="subtitle">ModernUI 提供完整的 GUI 开发体验</p>
+    <div class="grid grid-3">
+        <div class="card"><h3>🎨 40+ 组件</h3><p>Button, Label, TextInput, Dropdown, TabView, Table, DatePicker, BarChart 等全部常用组件</p></div>
+        <div class="card"><h3>🌓 主题动画</h3><p>暗色/亮色 0.4s 平滑过渡，ColorRole/FontSize/Spacing/BorderRadius 全插值</p></div>
+        <div class="card"><h3>🔤 CJK 字体</h3><p>Unicode 按需光栅化，中文/日文/韩文/Emoji 动态加载，多图集页</p></div>
+        <div class="card"><h3>🖱 右键菜单</h3><p>TextInput/TextEdit/Label 支持复制/粘贴/撤销/重做/全选</p></div>
+        <div class="card"><h3>⚡ 多线程</h3><p>可选 ThreadPool 并行 measure() 布局计算</p></div>
+        <div class="card"><h3>🎯 图标系统</h3><p>45 种内置几何矢量图标，所有组件可设置</p></div>
+    </div>
+</section>
+
+<section class="section">
+    <h2>快速开始</h2>
+    <pre><code>mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A x64
+cmake --build . --config Release
+./Release/exp.exe</code></pre>
+</section>
+
+<footer>
+    <p>ModernUI — MIT License &copy; 2026</p>
+    <p><a href="https://github.com/PogiePop/modern-ui">github.com/PogiePop/modern-ui</a></p>
+</footer>
+
+<script>
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') !== 'light';
+    html.setAttribute('data-theme', isDark ? 'light' : '');
+    document.getElementById('themeBtn').textContent = isDark ? '☾ 暗色' : '☀ 亮色';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+(function() {
+    if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = '☾ 暗色';
+    }
+})();
+</script>
+</body>
+</html>

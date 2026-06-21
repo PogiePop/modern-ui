@@ -2,144 +2,79 @@
 #include "core/Painter.hpp"
 #include "core/Event.hpp"
 #include "res/Font.hpp"
-#include <algorithm>
-#include <stack>
 
 namespace ui {
 
 NavMenu::NavMenu() { m_focusable = true; }
 
-void NavMenu::addItem(const std::string& label, IconType icon, std::function<void()> onClick) {
-    auto n = std::make_unique<Node>();
-    n->data = {label, icon, std::move(onClick), true, {}};
-    m_roots.push_back(std::move(n));
-    m_totalHeight += ITEM_H;
-}
-
-void NavMenu::addSubMenu(const std::string& label, IconType icon, const std::vector<MenuItemData>& children) {
-    auto n = std::make_unique<Node>();
-    n->data = {label, icon, nullptr, true, children};
-    for (auto& ch : children) {
-        auto cn = std::make_unique<Node>();
-        cn->data = ch;
-        n->children.push_back(std::move(cn));
+void NavMenu::buildTree(const std::vector<MenuItem>& items, std::vector<std::unique_ptr<Node>>& out) {
+    for (auto& it : items) {
+        auto n = std::make_unique<Node>(); n->item = it;
+        if (!it.children.empty()) buildTree(it.children, n->kids);
+        out.push_back(std::move(n));
     }
-    computeHeight(*n);
-    m_totalHeight += ITEM_H; // header + children when expanded
-    m_roots.push_back(std::move(n));
 }
 
-void NavMenu::clearItems() { m_roots.clear(); m_totalHeight = 0; }
+void NavMenu::setItems(const std::vector<MenuItem>& items) {
+    m_roots.clear(); buildTree(items, m_roots);
+    markLayoutDirty();
+}
 
-void NavMenu::computeHeight(Node& node) {
-    node.cachedHeight = ITEM_H;
-    if (node.expanded) for (auto& c : node.children) node.cachedHeight += ITEM_H;
+float NavMenu::totalHeight(const std::vector<std::unique_ptr<NavMenu::Node>>& nodes) const {
+    float h = 0;
+    for (auto& n : nodes) { h += ROW; if (n->open) h += totalHeight(n->kids); }
+    return h;
 }
 
 Size NavMenu::measure(const Size& a) const {
-    float h = m_totalHeight;
-    for (auto& r : m_roots) if (r->expanded) for (auto& c : r->children) h += ITEM_H;
-    return {a.width > 0 ? a.width : 200, std::max(h, 100.0f)};
+    return {a.width > 0 ? a.width : 180, std::max(totalHeight(m_roots) + 4, 60.0f)};
 }
 
-NavMenu::Node* NavMenu::findNode(int flatIdx, int& current, std::vector<int>& path) {
-    std::function<Node*(const std::vector<std::unique_ptr<Node>>&)> search =
-    [&](const std::vector<std::unique_ptr<Node>>& nodes) -> Node* {
-        for (size_t i = 0; i < nodes.size(); ++i) {
-            path.push_back((int)i);
-            if (current == flatIdx) return nodes[i].get();
-            current++;
-            auto* found = search(nodes[i]->children);
-            if (found) return found;
-            path.pop_back();
-        }
-        return nullptr;
-    };
-    int cur = 0;
-    return search(m_roots);
-}
-
-void NavMenu::toggleExpand(int flatIdx) {
-    std::vector<int> path; int cur = 0;
-    Node* n = findNode(flatIdx, cur, path);
-    if (n && !n->children.empty()) {
-        n->expanded = !n->expanded;
-        computeHeight(*n);
+NavMenu::Node* NavMenu::nodeAt(int& idx, std::vector<std::unique_ptr<Node>>& nodes) {
+    for (auto& n : nodes) {
+        if (idx == 0) return n.get(); idx--;
+        if (n->open) { Node* f = nodeAt(idx, n->kids); if (f) return f; }
     }
+    return nullptr;
 }
 
-float NavMenu::paintNode(Painter& p, float x, float y, float w, const Node& node, int depth, int& idx, int hoverFlat, const std::vector<int>& hoverPath, int pathDepth) {
-    bool isHovered = (idx == hoverFlat);
+float NavMenu::paintTree(Painter& p, const std::vector<std::unique_ptr<NavMenu::Node>>& nodes, float x, float y, int depth, int& idx) {
     float lh = m_font ? m_font->lineHeight() : 18;
-    float cx = x + depth * INDENT;
-
-    // Background highlight
-    if (isHovered) p.drawRect({cx, y, w - depth*INDENT, ITEM_H}, Color{0.2f,0.3f,0.5f,0.5f});
-    else if (node.data.children.empty() && node.data.onClick == nullptr) {}
-
-    // Icon
-    if (node.data.icon != IconType::None)
-        drawIcon(p, node.data.icon, cx+4, y+8, 16, isHovered ? Color{1,1,1,1} : Color{0.6f,0.6f,0.7f,1});
-
-    // Expand arrow for sub-menus
-    float textX = cx + (node.data.icon != IconType::None ? 26 : 8);
-    if (!node.data.children.empty()) {
-        std::string arrow = node.expanded ? "v" : ">";
-        p.drawText({cx + w - depth*INDENT - 20, y+2, 16, ITEM_H-4}, arrow, Color{0.5f,0.5f,0.5f,1}, TextAlign::Center);
+    for (auto& n : nodes) {
+        bool hov = (idx == m_hover);
+        float cx = x + depth * INDENT;
+        if (hov) p.drawRect({cx, y, m_bounds.width - depth*INDENT, ROW}, Color{0.2f,0.3f,0.5f,0.5f});
+        // Icon
+        float tx = cx + 4;
+        if (n->item.icon != IconType::None) { drawIcon(p, n->item.icon, tx, y+7, 16, hov?Color{1,1,1,1}:Color{0.6f,0.6f,0.7f,1}); tx += 20; }
+        // Arrow
+        if (!n->kids.empty())
+            p.drawText({cx + m_bounds.width - depth*INDENT - 20, y, 16, ROW}, n->open ? "v" : ">", Color{0.5f,0.5f,0.5f,1}, TextAlign::Center);
+        // Label
+        Color tc = n->item.enabled ? (hov ? Color{1,1,1,1} : Color{0.8f,0.8f,0.8f,1}) : Color{0.4f,0.4f,0.4f,1};
+        p.drawText({tx, y+2, m_bounds.width - depth*INDENT - tx - 20, ROW-4}, n->item.label, tc, TextAlign::Left);
+        y += ROW; idx++;
+        if (n->open) y = paintTree(p, n->kids, x, y, depth+1, idx);
     }
-
-    // Label
-    Color tc = node.data.enabled ? (isHovered ? Color{1,1,1,1} : Color{0.8f,0.8f,0.8f,1}) : Color{0.4f,0.4f,0.4f,1};
-    p.drawText({textX, y+2, w - depth*INDENT - textX - 20, ITEM_H-4}, node.data.label, tc, TextAlign::Left);
-
-    float ny = y + ITEM_H;
-    idx++;
-
-    // Children (if expanded)
-    if (node.expanded) {
-        for (size_t ci = 0; ci < node.children.size(); ++ci) {
-            std::vector<int> cp = hoverPath;
-            bool childHovered = (pathDepth < (int)hoverPath.size() && ci == (size_t)hoverPath[pathDepth] && (int)ci < (int)node.children.size());
-            ny = paintNode(p, x, ny, w, *node.children[ci], depth+1, idx, hoverFlat, hoverPath, pathDepth+1);
-        }
-    }
-    return ny;
+    return y;
 }
 
 void NavMenu::paint(Painter& p) {
-    Rect r = screenRect();
-    float lh = m_font ? m_font->lineHeight() : 18;
-    float y = r.y + 2;
     int idx = 0;
-    for (auto& root : m_roots) {
-        std::vector<int> hp;
-        y = paintNode(p, r.x, y, m_bounds.width, *root, 0, idx, m_hoveredPath, hp, 0);
-    }
+    paintTree(p, m_roots, screenRect().x, screenRect().y + 2, 0, idx);
 }
 
 bool NavMenu::onMouseDown(MouseEvent& e) {
     if (e.button != 0) return false;
-    int clicked = (int)(e.localPos.y / ITEM_H);
-    // Toggle expand or fire click
-    std::vector<int> path; int cur = 0;
-    Node* n = findNode(clicked, cur, path);
+    int idx = (int)(e.localPos.y / ROW);
+    Node* n = nodeAt(idx, m_roots);
     if (n) {
-        if (!n->children.empty()) toggleExpand(clicked);
-        else if (n->data.onClick) n->data.onClick();
-        if (m_onSelect) m_onSelect(n->data.label);
+        if (!n->kids.empty()) n->open = !n->open; // toggle
+        else if (n->item.action) n->item.action();
     }
     return true;
 }
 
-bool NavMenu::onMouseMove(MouseEvent& e) {
-    m_hoveredPath = (int)(e.localPos.y / ITEM_H);
-    return true;
-}
-
-Widget* NavMenu::hitTest(Point lp) {
-    if (!m_visible) return nullptr;
-    if (lp.x >= 0 && lp.y >= 0 && lp.x < m_bounds.width && lp.y < m_bounds.height) return this;
-    return nullptr;
-}
+bool NavMenu::onMouseMove(MouseEvent& e) { m_hover = (int)(e.localPos.y / ROW); return true; }
 
 } // namespace ui

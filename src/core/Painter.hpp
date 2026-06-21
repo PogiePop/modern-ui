@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <string>
+#include <unordered_map>
 #include <glm/glm.hpp>
 
 #include "core/Types.hpp"
@@ -38,13 +39,13 @@ public:
                   const Color& color, TextAlign align = TextAlign::Left);
 
     // Set the default font
-    void setFont(Font* font) { m_font = font; }
+    void setFont(Font* font) { m_font = font; invalidateTextCache(); }
     Font* font() const { return m_font; }
 
     void setCursorVisible(bool v) { m_cursorVisible = v; }
     bool cursorVisible() const { return m_cursorVisible; }
 
-    // Text measurement using loaded font
+    // Text measurement using loaded font (cached per frame)
     float measureTextWidth(const std::string& text) const;
 
     // Image
@@ -57,11 +58,15 @@ public:
     // Update framebuffer size (call on resize)
     void setFramebufferSize(int w, int h) { m_fbWidth = w; m_fbHeight = h; }
 
+    // Clear text measurement cache (call each frame start)
+    void invalidateTextCache() { m_textCache.clear(); }
+
 private:
     QuadBatcher& m_batcher;
     int m_fbWidth, m_fbHeight;
     Font* m_font = nullptr;
     bool m_cursorVisible = true;
+    mutable std::unordered_map<std::string, float> m_textCache;
 };
 
 } // namespace ui
